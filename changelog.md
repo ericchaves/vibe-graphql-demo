@@ -8,8 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added offset-based pagination arguments (`limit`, `offset`) to `getVisitas` query.
+- Added `totalCount` field to `VisitaConnection` type.
+- Implemented hybrid pagination logic in `getVisitas` resolver:
+  - Detects pagination mode (cursor, offset, default) based on arguments.
+  - Validates against conflicting pagination arguments.
+  - Calculates `totalCount` based on filters.
+  - Conditionally applies cursor or offset/limit logic to SQL query.
+  - Conditionally calculates `PageInfo` based on pagination mode.
+- Added integration tests for offset pagination, default pagination, `totalCount`, and argument conflicts.
 
 ### Changed
+- Updated `README.md` to document hybrid pagination, `totalCount`, validation rules, and add offset examples.
 
 ### Deprecated
 

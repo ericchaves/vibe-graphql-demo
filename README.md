@@ -87,9 +87,15 @@ The API will be accessible at `http://localhost:8000`. You can also use the Make
 
 The GraphQL API provides a single query:
 
-*   `getVisitas(filter: VisitaFilterInput, first: Int, after: String, last: Int, before: String): VisitaConnection!`
+*   `getVisitas(filter: VisitaFilterInput, first: Int, after: String, last: Int, before: String, limit: Int, offset: Int): VisitaConnection!`
 
-This query allows fetching visit data with complex filtering capabilities (`VisitaFilterInput`) and cursor-based pagination based on the Relay Connection specification.
+This query allows fetching visit data with complex filtering capabilities (`VisitaFilterInput`) and supports two pagination modes:
+    1.  **Cursor-based (Relay):** Using `first`/`after` or `last`/`before`. This is the recommended method for stable pagination.
+    2.  **Offset-based:** Using `limit`/`offset`. Simpler but can be less reliable if data changes during pagination.
+
+**Important:** You cannot mix cursor-based arguments (`first`, `after`, `last`, `before`) with offset-based arguments (`limit`, `offset`) in the same query. Doing so will result in an error.
+
+If no pagination arguments are provided, the query defaults to offset-based pagination with `offset: 0` and `limit: 20` (the default page size).
 
 ### `VisitaType`
 
@@ -321,6 +327,7 @@ The query returns a `VisitaConnection` object with the following structure:
     *   `hasPreviousPage: Boolean`: Indicates if there are more items before this page when paginating backward.
     *   `startCursor: String`: The cursor of the first edge on the page.
     *   `endCursor: String`: The cursor of the last edge on the page.
+*   `totalCount: Int`: The total number of visits matching the filter criteria, irrespective of pagination.
 
 **Pagination Examples:**
 
@@ -408,6 +415,40 @@ query GetFilteredFirst2($filter: VisitaFilterInput) {
 }
 # Variables
 { "filter": { "tipoDispositivo": { "equals": "Mobile" } } }
+```
+
+6.  **Get 10 visits starting from offset 20 (Offset Pagination):**
+```graphql
+query GetOffsetPage {
+  getVisitas(limit: 10, offset: 20) {
+    edges {
+      cursor # Cursors are still provided for consistency
+      node { idVisita nomeDominio }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
+```
+
+7.  **Get default first page (Offset Pagination, default limit/offset):**
+```graphql
+query GetDefaultPage {
+  getVisitas { # No pagination args provided
+    edges {
+      cursor
+      node { idVisita nomeDominio }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
 ```
 
 
