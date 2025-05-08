@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added `pageSize` field to `VisitaConnection` type in `schema.py` to indicate the number of items requested per page.
 
 ### Changed
 
@@ -19,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [stage-14.0] - 2025-05-08
+
+### Added
+- Added `pageSize` field to `VisitaConnection` type in `schema.py` to indicate the number of items requested per page.
 
 ## [stage-13.0] - 2025-05-08
 
