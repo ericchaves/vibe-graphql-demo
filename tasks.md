@@ -45,6 +45,13 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] Escrever testes unitários para construção de query SQL
     - [x] Escrever testes de integração para a API GraphQL
     - [x] Atualizar `tasks.md` e `changelog.md`
+- [x] Etapa X: Validação e Correção de Testes (Adicionado Pós-Etapa 6)
+    - [x] Validar que todos os testes existentes estão corretos e rodando
+    - [x] Corrigir `test_get_visitas_filter_by_timestamp_range` em `tests/test_graphql_api.py`
+    - [x] Corrigir falhas em `tests/test_query_builder.py` devido a aliases de tabela
+    - [x] Adicionar `httpx` como dependência e atualizar `requirements.txt`
+    - [x] Garantir que todos os testes passem usando `uv run python -m unittest discover -s tests -v`
+    - [x] Atualizar `tasks.md` (esta tarefa)
 
 - [x] Etapa 7: Documentação Final
     - [x] Expandir o `README.md`

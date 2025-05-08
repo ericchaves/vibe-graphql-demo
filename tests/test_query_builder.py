@@ -20,26 +20,26 @@ class TestQueryBuilder(unittest.TestCase):
     def test_string_equals_filter(self):
         filter_input = VisitaFilterInput(nome_dominio=StringFilterInput(equals="example.com"))
         where_clause, params = build_where_clause(filter_input)
-        self.assertEqual(where_clause, " WHERE DimDominio.nome_dominio = ?")
+        self.assertEqual(where_clause, " WHERE dd.nome_dominio = ?")
         self.assertEqual(params, ["example.com"])
 
     def test_string_contains_filter(self):
         filter_input = VisitaFilterInput(caminho_pagina=StringFilterInput(contains="product"))
         where_clause, params = build_where_clause(filter_input)
-        self.assertEqual(where_clause, " WHERE DimPagina.caminho_pagina LIKE ?")
+        self.assertEqual(where_clause, " WHERE dp.caminho_pagina LIKE ?")
         self.assertEqual(params, ["%product%"])
 
     def test_int_greater_than_filter(self):
         filter_input = VisitaFilterInput(ano=IntFilterInput(greaterThan=2022))
         where_clause, params = build_where_clause(filter_input)
-        self.assertEqual(where_clause, " WHERE DimTempo.ano > ?")
+        self.assertEqual(where_clause, " WHERE dt.ano > ?")
         self.assertEqual(params, [2022])
 
     def test_datetime_less_than_filter(self):
         test_time = datetime.datetime(2023, 1, 15, 10, 0, 0)
         filter_input = VisitaFilterInput(timestamp_visita=DateTimeFilterInput(lessThan=test_time))
         where_clause, params = build_where_clause(filter_input)
-        self.assertEqual(where_clause, " WHERE FatoVisitas.timestamp_visita < ?")
+        self.assertEqual(where_clause, " WHERE fv.timestamp_visita < ?")
         self.assertEqual(params, [int(test_time.timestamp())])
 
     def test_multiple_filters_and(self):
@@ -49,8 +49,8 @@ class TestQueryBuilder(unittest.TestCase):
         )
         where_clause, params = build_where_clause(filter_input)
         # Order of conditions might vary based on dictionary iteration, so check for both possibilities
-        expected_clause_1 = " WHERE DimDominio.nome_dominio = ? AND DimDispositivo.tipo_dispositivo = ?"
-        expected_clause_2 = " WHERE DimDispositivo.tipo_dispositivo = ? AND DimDominio.nome_dominio = ?"
+        expected_clause_1 = " WHERE dd.nome_dominio = ? AND ddi.tipo_dispositivo = ?"
+        expected_clause_2 = " WHERE ddi.tipo_dispositivo = ? AND dd.nome_dominio = ?"
         self.assertIn(where_clause, [expected_clause_1, expected_clause_2])
 
         expected_params_1 = ["example.com", "Mobile"]
@@ -61,13 +61,13 @@ class TestQueryBuilder(unittest.TestCase):
     def test_string_in_filter(self):
         filter_input = VisitaFilterInput(nome_navegador=StringFilterInput(In=["Chrome", "Firefox"]))
         where_clause, params = build_where_clause(filter_input)
-        self.assertEqual(where_clause, " WHERE DimNavegador.nome_navegador IN (?, ?)")
+        self.assertEqual(where_clause, " WHERE dn.nome_navegador IN (?, ?)")
         self.assertEqual(params, ["Chrome", "Firefox"])
 
     def test_int_not_in_filter(self):
         filter_input = VisitaFilterInput(mes=IntFilterInput(notIn=[10, 11, 12]))
         where_clause, params = build_where_clause(filter_input)
-        self.assertEqual(where_clause, " WHERE DimTempo.mes NOT IN (?, ?, ?)")
+        self.assertEqual(where_clause, " WHERE dt.mes NOT IN (?, ?, ?)")
         self.assertEqual(params, [10, 11, 12])
 
     def test_combined_filters(self):
@@ -81,9 +81,9 @@ class TestQueryBuilder(unittest.TestCase):
 
         # Check for the presence of key parts of the WHERE clause and parameters
         self.assertIn(" WHERE ", where_clause)
-        self.assertIn("DimGeografia.pais = ?", where_clause)
-        self.assertIn("FatoVisitas.timestamp_visita >= ?", where_clause)
-        self.assertIn("DimDispositivo.tipo_dispositivo != ?", where_clause)
+        self.assertIn("dg.pais = ?", where_clause)
+        self.assertIn("fv.timestamp_visita >= ?", where_clause)
+        self.assertIn("ddi.tipo_dispositivo != ?", where_clause)
 
         self.assertIn("USA", params)
         self.assertIn(int(test_time.timestamp()), params)

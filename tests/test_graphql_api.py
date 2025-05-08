@@ -119,9 +119,64 @@ class TestGraphQLAPI(unittest.TestCase):
 
     def test_get_visitas_filter_by_timestamp_range(self):
         """Test filtering visits by timestamp within a range."""
-        # Need to know the range of timestamps in seed data to create a valid test
-        # For now, this test is a placeholder.
-        pass
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) {
+                    idVisita
+                    timestampVisita # Ensure this field is in VisitaType and returns ISO string or Unix timestamp
+                }
+            }
+        """
+        # Timestamps from seed_data.py are all on 2023-01-01
+        # The DimTempo entries range from 2023-01-01 00:00:00 to 2023-01-01 16:30:00
+        # FatoVisitas.timestamp_visita is a Unix timestamp derived from these.
+        # The GraphQL filter expects ISO datetime strings.
+
+        start_time_dt = datetime.datetime(2023, 1, 1, 8, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time_dt = datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
+
+        variables = {
+            "filter": {
+                "timestampVisita": {
+                    "greaterThanOrEqual": start_time_dt.isoformat(),
+                    "lessThanOrEqual": end_time_dt.isoformat()
+                }
+            }
+        }
+        response = self.client.post("/graphql", json={"query": query, "variables": variables})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsNotNone(data.get("data"))
+        visitas = data["data"].get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertGreater(len(visitas), 0) # Expect some visits in this range
+
+        # Convert filter times to Unix timestamps for comparison, as VisitaType.timestampVisita resolves to Int (Unix timestamp)
+        start_ts_unix = int(start_time_dt.timestamp())
+        end_ts_unix = int(end_time_dt.timestamp())
+
+        for visita in visitas:
+            self.assertIsNotNone(visita.get("timestampVisita"))
+            visita_ts_str = visita["timestampVisita"]
+            self.assertIsInstance(visita_ts_str, str)
+            # The resolver returns ISO format string. Convert it to a datetime object.
+            # The string might or might not have Z for UTC. datetime.fromisoformat handles this.
+            # If it includes microseconds, they need to be handled or stripped if not consistent.
+            # Assuming the format is like '2023-01-01T08:00:19' or '2023-01-01T08:00:19Z'
+            # If it has timezone offset like +00:00, fromisoformat handles it.
+            try:
+                visita_dt = datetime.datetime.fromisoformat(visita_ts_str.replace('Z', '+00:00'))
+            except ValueError:
+                 # Handle cases where timezone might not be 'Z' but an offset, or no tz info
+                 # For simplicity, if it fails, assume it's naive and UTC (consistent with seed data generation)
+                 # This part might need adjustment based on actual resolver output format
+                visita_dt = datetime.datetime.fromisoformat(visita_ts_str)
+                if visita_dt.tzinfo is None:
+                    visita_dt = visita_dt.replace(tzinfo=datetime.timezone.utc)
+
+            visita_ts_unix = int(visita_dt.timestamp())
+            self.assertGreaterEqual(visita_ts_unix, start_ts_unix)
+            self.assertLessEqual(visita_ts_unix, end_ts_unix)
 
     def test_get_visitas_filter_by_utm_source_contains(self):
         """Test filtering visits by UTM source using contains."""

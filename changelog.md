@@ -8,18 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-# (This section should be empty for now, as all previous additions are part of stage-7.0)
+- `httpx` dependency to `requirements.txt` for `fastapi.testclient`.
 
 ### Changed
+- Updated `tests/test_query_builder.py` to use table aliases (e.g., `dd.nome_dominio`) instead of full table names in assertions to match actual query builder output.
+- Modified `tests/test_graphql_api.py` in `test_get_visitas_filter_by_timestamp_range` to correctly parse ISO string timestamps returned by the API.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Corrected and completed the `test_get_visitas_filter_by_timestamp_range` test in `tests/test_graphql_api.py`.
+- Ensured all tests pass by running them with `uv run python -m unittest discover -s tests -v`.
+- Resolved initial test execution failures by installing dependencies with `uv pip install -r requirements.txt` and running tests within the `uv` managed environment.
 - Resolved errors in `seed_data.py` related to incorrect primary key column name generation for dimension tables.
 - Fixed SQL query construction in `schema.py` to prevent "You can only execute one statement at a time" error by removing a misplaced semicolon.
 - Corrected table alias usage in `schema.py`'s `field_mapping` and filter condition builders to resolve "no such column" errors when applying GraphQL filters.
+
 
 ### Security
 
