@@ -2,9 +2,11 @@ import strawberry
 import datetime
 import sqlite3
 import os
-from typing import List, Optional, Any
+import base64
+from typing import List, Optional, Any, Tuple
 
 DATABASE_FILE = 'database.db'
+DEFAULT_PAGE_SIZE = 20 # Default number of items per page
 
 def get_db_connection():
     """Establishes a connection to the SQLite database."""
@@ -336,6 +338,25 @@ class VisitaType:
     url_referencia: Optional[str]
     tipo_referencia: Optional[str] # Can be NULL for direct traffic, but type_referencia in DB is NOT NULL. Need to clarify. Assuming NOT NULL based on schema.sql.
 
+# --- Relay Connection Types ---
+@strawberry.type
+class PageInfo:
+    has_next_page: bool
+    has_previous_page: bool
+    start_cursor: Optional[str] = None
+    end_cursor: Optional[str] = None
+
+@strawberry.type
+class VisitaEdge:
+    node: VisitaType
+    cursor: str
+
+@strawberry.type
+class VisitaConnection:
+    edges: List[VisitaEdge]
+    pageInfo: PageInfo
+    # totalCount: Optional[int] = None # Optional: Consider adding total count if feasible/needed
+
 # Define the VisitaFilterInput
 @strawberry.input
 class VisitaFilterInput:
@@ -406,14 +427,79 @@ class VisitaFilterInput:
 @strawberry.type
 class Query:
     @strawberry.field
-    def get_visitas(self, filter: Optional[VisitaFilterInput] = None) -> List[VisitaType]:
+    def get_visitas(
+        self,
+        filter: Optional[VisitaFilterInput] = None,
+        first: Optional[int] = None,
+        after: Optional[str] = None,
+        last: Optional[int] = None,
+        before: Optional[str] = None
+    ) -> VisitaConnection:
+        # Basic validation
+        if first is not None and last is not None:
+            raise ValueError("Cannot use `first` and `last` arguments together.")
+        if after is not None and first is None:
+             raise ValueError("`after` cursor must be used with `first` argument.")
+        if before is not None and last is None:
+             raise ValueError("`before` cursor must be used with `last` argument.")
+
+        # --- Pagination Logic ---
+        limit = DEFAULT_PAGE_SIZE
+        order_by_clause = " ORDER BY fv.timestamp_visita ASC, fv.id_visita ASC " # Default order for forward pagination
+        pagination_conditions = []
+        pagination_params = []
+        fetch_extra_for_page_info = False # Flag to fetch one extra item
+
+        # Decode cursors
+        after_timestamp = None
+        after_id = None
+        if after:
+            try:
+                decoded_after = base64.b64decode(after).decode('utf-8')
+                after_timestamp_str, after_id_str = decoded_after.split(':')
+                after_timestamp = int(after_timestamp_str)
+                after_id = int(after_id_str)
+            except (ValueError, TypeError):
+                raise ValueError("Invalid `after` cursor format.")
+
+        before_timestamp = None
+        before_id = None
+        if before:
+             try:
+                decoded_before = base64.b64decode(before).decode('utf-8')
+                before_timestamp_str, before_id_str = decoded_before.split(':')
+                before_timestamp = int(before_timestamp_str)
+                before_id = int(before_id_str)
+             except (ValueError, TypeError):
+                raise ValueError("Invalid `before` cursor format.")
+
+        # Determine limit and potentially reverse order for backward pagination
+        if first is not None:
+            limit = first + 1 # Fetch one extra to check has_next_page
+            fetch_extra_for_page_info = True
+            if after_timestamp is not None and after_id is not None:
+                 pagination_conditions.append("(fv.timestamp_visita > ? OR (fv.timestamp_visita = ? AND fv.id_visita > ?))")
+                 pagination_params.extend([after_timestamp, after_timestamp, after_id])
+        elif last is not None:
+            limit = last + 1 # Fetch one extra to check has_previous_page
+            fetch_extra_for_page_info = True
+            order_by_clause = " ORDER BY fv.timestamp_visita DESC, fv.id_visita DESC " # Reverse order for backward fetching
+            if before_timestamp is not None and before_id is not None:
+                 pagination_conditions.append("(fv.timestamp_visita < ? OR (fv.timestamp_visita = ? AND fv.id_visita < ?))")
+                 pagination_params.extend([before_timestamp, before_timestamp, before_id])
+        else:
+             # No first or last provided, use default limit for first page
+             limit = DEFAULT_PAGE_SIZE + 1
+             fetch_extra_for_page_info = True
+
+
         conn = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            # Base query with JOINs to all dimension tables
-            query = """
+            # Base query parts
+            select_part = """
             SELECT
                 fv.id_visita,
                 fv.timestamp_visita,
@@ -448,33 +534,67 @@ class Query:
                 dg.cidade AS cidade_geografia,
                 dr.url_referencia,
                 dr.tipo_referencia
+            """
+            from_join_part = """
             FROM FatoVisitas fv
             JOIN DimDominio dd ON fv.id_dim_dominio = dd.id_dim_dominio
             JOIN DimPagina dp ON fv.id_dim_pagina = dp.id_dim_pagina
             JOIN DimUrl du ON fv.id_dim_url = du.id_dim_url
             JOIN DimNavegador dn ON fv.id_dim_navegador = dn.id_dim_navegador
-            LEFT JOIN DimUtm dut ON fv.id_dim_utm = dut.id_dim_utm -- LEFT JOIN because UTM is optional
+            LEFT JOIN DimUtm dut ON fv.id_dim_utm = dut.id_dim_utm
             JOIN DimSessao ds ON fv.id_dim_sessao = ds.id_dim_sessao
             JOIN DimDispositivo ddi ON fv.id_dim_dispositivo = ddi.id_dim_dispositivo
             JOIN DimIp dip ON fv.id_dim_ip = dip.id_dim_ip
             JOIN DimTempo dt ON fv.id_dim_tempo = dt.id_dim_tempo
-            LEFT JOIN DimGeografia dg ON fv.id_dim_geografia = dg.id_dim_geografia -- LEFT JOIN because Geo is optional
-            LEFT JOIN DimReferencia dr ON fv.id_dim_referencia = dr.id_dim_referencia -- LEFT JOIN because Referencia is optional
+            LEFT JOIN DimGeografia dg ON fv.id_dim_geografia = dg.id_dim_geografia
+            LEFT JOIN DimReferencia dr ON fv.id_dim_referencia = dr.id_dim_referencia
             """
 
-            where_clause, params = build_where_clause(filter)
-            final_query = query + where_clause
+            # Build filter clause
+            filter_where_clause, filter_params = build_where_clause(filter)
 
-            # For debugging, print the query and params
+            # Combine filter and pagination conditions
+            all_conditions = []
+            if filter_where_clause:
+                # Strip " WHERE " from the filter clause
+                all_conditions.append(filter_where_clause[7:])
+            if pagination_conditions:
+                all_conditions.extend(pagination_conditions)
+
+            final_where_clause = " WHERE " + " AND ".join(all_conditions) if all_conditions else ""
+            all_params = filter_params + pagination_params
+
+            # Construct final query
+            final_query = select_part + from_join_part + final_where_clause + order_by_clause + f" LIMIT ?"
+            all_params.append(limit)
+
+            # For debugging
             # print(f"Executing SQL: {final_query}")
-            # print(f"With params: {params}")
+            # print(f"With params: {all_params}")
 
-            cursor.execute(final_query, params)
+            cursor.execute(final_query, all_params)
             rows = cursor.fetchall()
 
-            visitas = []
+            # --- Process results for Connection ---
+            has_next = False
+            has_previous = False
+            
+            if fetch_extra_for_page_info and len(rows) == limit:
+                # We fetched one extra item
+                if last is not None: # Backward pagination
+                    has_previous = True
+                    rows = rows[:-1] # Remove the extra item from the beginning (due to DESC order)
+                else: # Forward pagination or no pagination args
+                    has_next = True
+                    rows = rows[:-1] # Remove the extra item from the end
+            
+            # Reverse results if backward pagination was used
+            if last is not None:
+                rows.reverse()
+
+            edges = []
             for row in rows:
-                visitas.append(VisitaType(
+                node = VisitaType(
                     id_visita=row['id_visita'],
                     timestamp_visita=datetime.datetime.fromtimestamp(row['timestamp_visita']),
                     nome_dominio=row['nome_dominio'],
@@ -508,9 +628,24 @@ class Query:
                     cidade_geografia=row['cidade_geografia'],
                     url_referencia=row['url_referencia'],
                     tipo_referencia=row['tipo_referencia']
-                ))
-            return visitas
+                )
+                # Create cursor from timestamp and id
+                cursor_str = base64.b64encode(f"{row['timestamp_visita']}:{row['id_visita']}".encode('utf-8')).decode('utf-8')
+                edges.append(VisitaEdge(node=node, cursor=cursor_str))
 
+            page_info = PageInfo(
+                has_next_page=has_next,
+                has_previous_page=has_previous,
+                start_cursor=edges[0].cursor if edges else None,
+                end_cursor=edges[-1].cursor if edges else None
+            )
+
+            return VisitaConnection(edges=edges, pageInfo=page_info)
+
+        except ValueError as e: # Catch specific validation errors
+             print(f"Input error: {e}")
+             # Consider raising a GraphQL error instead
+             raise e # Re-raise for now, Strawberry might handle it
         except sqlite3.Error as e:
             print(f"Database error in resolver: {e}")
             # In a real API, you might want to return a GraphQL error

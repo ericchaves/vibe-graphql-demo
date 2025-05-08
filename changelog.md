@@ -8,8 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implemented Relay Cursor Connections pagination for the `getVisitas` query.
+  - Defined `PageInfo`, `VisitaEdge`, and `VisitaConnection` types in `schema.py`.
+  - Added pagination arguments (`first`, `after`, `last`, `before`) to `getVisitas` query.
+  - Updated `getVisitas` resolver in `schema.py` to handle cursor encoding/decoding, SQL query modification (ORDER BY, LIMIT, cursor conditions), and result processing for connection structure.
+- Added integration tests in `tests/test_graphql_api.py` for various pagination scenarios (forward, backward, with filters).
 
 ### Changed
+- Modified `getVisitas` query return type from `List[VisitaType]` to `VisitaConnection`.
+- Updated `README.md` to document pagination arguments, return structure, and provide usage examples.
+- Updated existing integration tests in `tests/test_graphql_api.py` to work with the new Connection structure.
 
 ### Deprecated
 

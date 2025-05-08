@@ -87,9 +87,9 @@ The API will be accessible at `http://localhost:8000`. You can also use the Make
 
 The GraphQL API provides a single query:
 
-*   `getVisitas(filter: VisitaFilterInput): [VisitaType]`
+*   `getVisitas(filter: VisitaFilterInput, first: Int, after: String, last: Int, before: String): VisitaConnection!`
 
-This query allows fetching visit data with complex filtering capabilities using the `VisitaFilterInput`.
+This query allows fetching visit data with complex filtering capabilities (`VisitaFilterInput`) and cursor-based pagination based on the Relay Connection specification.
 
 ### `VisitaType`
 
@@ -231,7 +231,26 @@ query GetVisitasNested($filter: VisitaFilterInput) {
 8.  **Complex Combination:** Find visits that are ( (from "USA" AND "Mobile") OR (Browser="Chrome" AND Year between 2022-2023) ) AND occurred after 2023-01-01.
 ```graphql
 query GetVisitasComplex($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita nomeDominio paisGeografia tipoDispositivo nomeNavegador ano timestampVisita }
+  getVisitas(filter: $filter) {
+    edges {
+      node {
+        idVisita
+        nomeDominio
+        paisGeografia
+        tipoDispositivo
+        nomeNavegador
+        ano
+        timestampVisita
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
 }
 # Variables
 {
@@ -254,6 +273,115 @@ query GetVisitasComplex($filter: VisitaFilterInput) {
   }
 }
 ```
+
+### Pagination
+
+The `getVisitas` query supports cursor-based pagination using the following arguments:
+
+*   `first: Int`: Returns the first `n` items.
+*   `after: String`: Returns items after the specified cursor. Must be used with `first`.
+*   `last: Int`: Returns the last `n` items.
+*   `before: String`: Returns items before the specified cursor. Must be used with `last`.
+
+The query returns a `VisitaConnection` object with the following structure:
+
+*   `edges`: A list of `VisitaEdge` objects.
+    *   `node`: The actual `VisitaType` data.
+    *   `cursor`: An opaque string representing the position of this node.
+*   `pageInfo`: A `PageInfo` object containing metadata about the current page.
+    *   `hasNextPage: Boolean`: Indicates if there are more items after this page when paginating forward.
+    *   `hasPreviousPage: Boolean`: Indicates if there are more items before this page when paginating backward.
+    *   `startCursor: String`: The cursor of the first edge on the page.
+    *   `endCursor: String`: The cursor of the last edge on the page.
+
+**Pagination Examples:**
+
+1.  **Get the first 5 visits:**
+```graphql
+query GetFirst5Visits {
+  getVisitas(first: 5) {
+    edges {
+      cursor
+      node { idVisita nomeDominio }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+```
+
+2.  **Get the next 5 visits after a specific cursor:**
+```graphql
+query GetNext5Visits($afterCursor: String!) {
+  getVisitas(first: 5, after: $afterCursor) {
+    edges {
+      cursor
+      node { idVisita nomeDominio }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+# Variables
+# { "afterCursor": "cursor_from_previous_page" }
+```
+
+3.  **Get the last 3 visits:**
+```graphql
+query GetLast3Visits {
+  getVisitas(last: 3) {
+    edges {
+      cursor
+      node { idVisita nomeDominio }
+    }
+    pageInfo {
+      startCursor
+      hasPreviousPage
+    }
+  }
+}
+```
+
+4.  **Get the previous 3 visits before a specific cursor:**
+```graphql
+query GetPrevious3Visits($beforeCursor: String!) {
+  getVisitas(last: 3, before: $beforeCursor) {
+    edges {
+      cursor
+      node { idVisita nomeDominio }
+    }
+    pageInfo {
+      startCursor
+      hasPreviousPage
+    }
+  }
+}
+# Variables
+# { "beforeCursor": "cursor_from_subsequent_page" }
+```
+
+5.  **Get the first 2 visits for a specific filter:**
+```graphql
+query GetFilteredFirst2($filter: VisitaFilterInput) {
+  getVisitas(first: 2, filter: $filter) {
+    edges {
+      cursor
+      node { idVisita nomeDominio tipoDispositivo }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+# Variables
+{ "filter": { "tipoDispositivo": { "equals": "Mobile" } } }
+```
+
 
 ## Data Warehouse
 
