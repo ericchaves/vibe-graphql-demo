@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `pageSize` field to `VisitaConnection` type in `schema.py` to indicate the number of items requested per page.
+- Added `pageCount` field to `VisitaConnection` type in `schema.py` to indicate the actual number of items returned on the current page.
 
 ## [stage-13.0] - 2025-05-08
 

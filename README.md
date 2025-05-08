@@ -346,6 +346,7 @@ Regardless of the pagination mode used, the `getVisitas` query returns a `Visita
     *   `endCursor: String`: The cursor of the last edge on the page.
 *   `totalCount: Int`: The total number of visits matching the filter criteria, irrespective of pagination.
 *   `pageSize: Int`: The number of items requested for the current page (derived from `first`, `last`, `limit`, or the default page size).
+*   `pageCount: Int`: The number of edges (visits) actually returned on the current page.
 
 **Pagination Examples:**
 
