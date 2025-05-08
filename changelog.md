@@ -28,4 +28,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed SQL query construction in `schema.py` to prevent "You can only execute one statement at a time" error by removing a misplaced semicolon.
 - Corrected table alias usage in `schema.py`'s `field_mapping` and filter condition builders to resolve "no such column" errors when applying GraphQL filters.
 
+
 ### Security
