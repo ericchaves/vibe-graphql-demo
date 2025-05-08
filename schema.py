@@ -203,7 +203,7 @@ class VisitaEdge:
 
 @strawberry.type
 class VisitaConnection:
-    edges: List[VisitaEdge]; pageInfo: PageInfo; totalCount: int
+    edges: List[VisitaEdge]; pageInfo: PageInfo; totalCount: int; pageSize: int
 
 # Define the VisitaFilterInput
 @strawberry.input
@@ -262,7 +262,8 @@ class Query:
 
         # --- Determine Pagination Mode & Variables ---
         pagination_mode = "default"
-        sql_limit = DEFAULT_PAGE_SIZE
+        requested_page_size = DEFAULT_PAGE_SIZE # Initialize with default
+        sql_limit = DEFAULT_PAGE_SIZE # This will be adjusted, potentially +1 for cursor
         sql_offset = 0
         order_by_clause = " ORDER BY fv.timestamp_visita ASC, fv.id_visita ASC "
         pagination_conditions = []
@@ -276,31 +277,35 @@ class Query:
             before_timestamp, before_id = decode_cursor(cursor_args.before) if cursor_args.before else (None, None)
 
             if cursor_args.first is not None:
+                requested_page_size = cursor_args.first
                 sql_limit = cursor_args.first + 1
                 if after_timestamp is not None:
                     pagination_conditions.append("(fv.timestamp_visita > ? OR (fv.timestamp_visita = ? AND fv.id_visita > ?))")
                     pagination_params.extend([after_timestamp, after_timestamp, after_id])
             elif cursor_args.last is not None:
+                requested_page_size = cursor_args.last
                 sql_limit = cursor_args.last + 1
                 order_by_clause = " ORDER BY fv.timestamp_visita DESC, fv.id_visita DESC "
                 if before_timestamp is not None:
                     pagination_conditions.append("(fv.timestamp_visita < ? OR (fv.timestamp_visita = ? AND fv.id_visita < ?))")
                     pagination_params.extend([before_timestamp, before_timestamp, before_id])
-            # If only 'after' or 'before' is provided without 'first' or 'last',
-            # it's an invalid state caught by earlier validation.
-            # If no cursor pagination args are provided within cursor_args (e.g. empty object),
-            # it might fall through, but the intent is for specific args to be present.
-            # For safety, if cursor_args is present but no first/last, apply a default limit.
-            elif not cursor_args.first and not cursor_args.last:
+            else: # cursor_args provided, but no first/last (e.g. only after/before, which is invalid by earlier checks, or empty object)
+                  # In this case, sql_limit for query will be DEFAULT_PAGE_SIZE + 1, requested_page_size remains DEFAULT_PAGE_SIZE
                  sql_limit = DEFAULT_PAGE_SIZE + 1
 
 
         elif offset_args:
             pagination_mode = "offset"
-            sql_limit = offset_args.limit if offset_args.limit is not None else DEFAULT_PAGE_SIZE
+            if offset_args.limit is not None:
+                requested_page_size = offset_args.limit
+                sql_limit = offset_args.limit
+            else: # limit is None, use default
+                requested_page_size = DEFAULT_PAGE_SIZE
+                sql_limit = DEFAULT_PAGE_SIZE
             sql_offset = offset_args.offset if offset_args.offset is not None else 0
         else: # Default mode (no pagination args provided)
             pagination_mode = "offset" # Treat default as offset
+            requested_page_size = DEFAULT_PAGE_SIZE
             sql_limit = DEFAULT_PAGE_SIZE
             sql_offset = 0
 
@@ -413,7 +418,7 @@ class Query:
             )
 
             # Return Connection
-            return VisitaConnection(edges=edges, pageInfo=page_info, totalCount=total_count)
+            return VisitaConnection(edges=edges, pageInfo=page_info, totalCount=total_count, pageSize=requested_page_size)
 
         except ValueError as e: # Catch specific validation/cursor errors
              print(f"Input error: {e}")
@@ -422,7 +427,7 @@ class Query:
             print(f"Database error in resolver: {e}")
             # In a real API, you might want to return a more specific GraphQL error
             # For now, return an empty connection on DB errors
-            return VisitaConnection(edges=[], pageInfo=PageInfo(has_next_page=False, has_previous_page=False), totalCount=0)
+            return VisitaConnection(edges=[], pageInfo=PageInfo(has_next_page=False, has_previous_page=False), totalCount=0, pageSize=0) # pageSize 0 for error
         finally:
             if conn:
                 conn.close()

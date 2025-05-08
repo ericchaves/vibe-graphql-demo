@@ -105,3 +105,10 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] 13.3. Atualizar testes em `tests/test_graphql_api.py` para usar os novos input types.
     - [x] 13.4. Atualizar `README.md` com a nova assinatura e exemplos de paginação.
     - [x] 13.5. Atualizar `tasks.md` (esta tarefa).
+
+- [ ] Etapa 14: Adicionar `pageSize` a `VisitaConnection`
+    - [ ] 14.1. Adicionar campo `pageSize` ao tipo `VisitaConnection` em `schema.py`.
+    - [ ] 14.2. Modificar resolver `getVisitas` para calcular e retornar `pageSize`.
+    - [ ] 14.3. Atualizar testes em `tests/test_graphql_api.py` para incluir e verificar `pageSize`.
+    - [ ] 14.4. Atualizar `README.md` para documentar o novo campo `pageSize`.
+    - [ ] 14.5. Atualizar `tasks.md` (esta tarefa).

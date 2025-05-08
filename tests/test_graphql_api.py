@@ -78,6 +78,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -87,8 +88,10 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIn("edges", connection)
         self.assertIn("pageInfo", connection)
         self.assertIn("totalCount", connection)
+        self.assertIn("pageSize", connection)
         self.assertIsInstance(connection["edges"], list)
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], DEFAULT_PAGE_SIZE)
         # Check default page size
         self.assertLessEqual(len(connection["edges"]), DEFAULT_PAGE_SIZE)
         if self.TOTAL_VISITAS > DEFAULT_PAGE_SIZE:
@@ -205,6 +208,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -214,6 +218,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection)
         self.assertEqual(len(connection["edges"]), n)
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], n)
         self.assertTrue(connection["pageInfo"]["hasNextPage"])
         self.assertFalse(connection["pageInfo"]["hasPreviousPage"])
         self.assertIsNotNone(connection["pageInfo"]["startCursor"])
@@ -223,7 +228,7 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching the next page using first and after."""
         n1 = 3
         n2 = 4
-        query1 = """ query GetFirst($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { cursor } pageInfo { endCursor hasNextPage } totalCount } } """
+        query1 = """ query GetFirst($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { cursor } pageInfo { endCursor hasNextPage } totalCount pageSize } } """
         variables1 = {"cursorArgs": {"first": n1}}
         data1 = self._run_query(query1, variables1)
         connection1 = data1.get("getVisitas")
@@ -231,14 +236,16 @@ class TestGraphQLAPI(unittest.TestCase):
         last_cursor = connection1["pageInfo"]["endCursor"]
         self.assertIsNotNone(last_cursor)
         self.assertEqual(connection1["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection1["pageSize"], n1)
 
-        query2 = """ query GetNext($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } } """
+        query2 = """ query GetNext($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount pageSize } } """
         variables2 = {"cursorArgs": {"first": n2, "after": last_cursor}}
         data2 = self._run_query(query2, variables2)
         connection2 = data2.get("getVisitas")
         self.assertIsNotNone(connection2)
         self.assertEqual(len(connection2["edges"]), n2)
         self.assertEqual(connection2["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection2["pageSize"], n2)
         if self.TOTAL_VISITAS > n1 + n2: self.assertTrue(connection2["pageInfo"]["hasNextPage"])
         self.assertNotEqual(connection1["pageInfo"]["endCursor"], connection2["pageInfo"]["endCursor"])
 
@@ -251,6 +258,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -260,6 +268,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection)
         self.assertEqual(len(connection["edges"]), n)
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], n)
         self.assertFalse(connection["pageInfo"]["hasNextPage"])
         self.assertTrue(connection["pageInfo"]["hasPreviousPage"])
         self.assertIsNotNone(connection["pageInfo"]["startCursor"])
@@ -269,7 +278,7 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching the previous page using last and before."""
         n1 = 7
         n2 = 4
-        query1 = """ query GetLast($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { cursor } pageInfo { startCursor hasPreviousPage } totalCount } } """
+        query1 = """ query GetLast($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { cursor } pageInfo { startCursor hasPreviousPage } totalCount pageSize } } """
         variables1 = {"cursorArgs": {"last": n1}}
         data1 = self._run_query(query1, variables1)
         connection1 = data1.get("getVisitas")
@@ -277,14 +286,16 @@ class TestGraphQLAPI(unittest.TestCase):
         first_cursor = connection1["pageInfo"]["startCursor"]
         self.assertIsNotNone(first_cursor)
         self.assertEqual(connection1["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection1["pageSize"], n1)
 
-        query2 = """ query GetPrevious($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } } """
+        query2 = """ query GetPrevious($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount pageSize } } """
         variables2 = {"cursorArgs": {"last": n2, "before": first_cursor}}
         data2 = self._run_query(query2, variables2)
         connection2 = data2.get("getVisitas")
         self.assertIsNotNone(connection2)
         self.assertEqual(len(connection2["edges"]), n2)
         self.assertEqual(connection2["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection2["pageSize"], n2)
         if self.TOTAL_VISITAS > n1 + n2: self.assertTrue(connection2["pageInfo"]["hasPreviousPage"])
         self.assertNotEqual(connection1["pageInfo"]["startCursor"], connection2["pageInfo"]["startCursor"])
 
@@ -297,6 +308,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita nomeDominio } cursor }
                     pageInfo { endCursor hasNextPage }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -306,6 +318,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection1)
         self.assertLessEqual(len(connection1["edges"]), n)
         self.assertTrue(connection1["totalCount"] > 0) # Expect filtered results
+        self.assertEqual(connection1["pageSize"], n)
         for edge in connection1["edges"]: self.assertEqual(edge["node"]["nomeDominio"], "example.com")
 
         if connection1["pageInfo"]["hasNextPage"]:
@@ -315,6 +328,7 @@ class TestGraphQLAPI(unittest.TestCase):
             self.assertIsNotNone(connection2)
             self.assertLessEqual(len(connection2["edges"]), n)
             self.assertEqual(connection2["totalCount"], connection1["totalCount"]) # Total count should be consistent
+            self.assertEqual(connection2["pageSize"], n)
             for edge in connection2["edges"]: self.assertEqual(edge["node"]["nomeDominio"], "example.com")
             self.assertNotEqual(connection1["pageInfo"]["endCursor"], connection2["pageInfo"]["endCursor"])
 
@@ -330,6 +344,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -339,6 +354,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection)
         self.assertEqual(len(connection["edges"]), limit)
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], limit)
         self.assertTrue(connection["pageInfo"]["hasPreviousPage"]) # offset > 0
         self.assertTrue(connection["pageInfo"]["hasNextPage"]) # Assuming offset+limit < total
         self.assertIsNotNone(connection["pageInfo"]["startCursor"]) # Cursors still generated
@@ -353,6 +369,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } }
                     pageInfo { hasNextPage hasPreviousPage }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -362,6 +379,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection)
         self.assertEqual(len(connection["edges"]), DEFAULT_PAGE_SIZE) # Should return default size
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], DEFAULT_PAGE_SIZE)
         self.assertTrue(connection["pageInfo"]["hasPreviousPage"])
         if self.TOTAL_VISITAS > offset + DEFAULT_PAGE_SIZE:
             self.assertTrue(connection["pageInfo"]["hasNextPage"])
@@ -375,6 +393,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } }
                     pageInfo { hasNextPage hasPreviousPage }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -384,6 +403,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection)
         self.assertEqual(len(connection["edges"]), limit)
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], limit)
         self.assertFalse(connection["pageInfo"]["hasPreviousPage"]) # offset = 0
         self.assertTrue(connection["pageInfo"]["hasNextPage"]) # Assuming limit < total
 
@@ -395,6 +415,7 @@ class TestGraphQLAPI(unittest.TestCase):
                     edges { node { idVisita } }
                     pageInfo { hasNextPage hasPreviousPage }
                     totalCount
+                    pageSize
                 }
             }
         """
@@ -403,6 +424,7 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(connection)
         self.assertEqual(len(connection["edges"]), DEFAULT_PAGE_SIZE)
         self.assertEqual(connection["totalCount"], self.TOTAL_VISITAS)
+        self.assertEqual(connection["pageSize"], DEFAULT_PAGE_SIZE)
         self.assertFalse(connection["pageInfo"]["hasPreviousPage"])
         if self.TOTAL_VISITAS > DEFAULT_PAGE_SIZE:
             self.assertTrue(connection["pageInfo"]["hasNextPage"])
