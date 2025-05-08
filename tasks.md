@@ -112,3 +112,4 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] 14.3. Atualizar testes em `tests/test_graphql_api.py` para incluir e verificar `pageSize`.
     - [x] 14.4. Atualizar `README.md` para documentar o novo campo `pageSize`.
     - [x] 14.5. Atualizar `tasks.md` (esta tarefa).
+    - [x] 14.6. Adicionar campo pageCount ao tipo VisitaConnection e implementar lógica.

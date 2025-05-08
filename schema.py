@@ -203,7 +203,7 @@ class VisitaEdge:
 
 @strawberry.type
 class VisitaConnection:
-    edges: List[VisitaEdge]; pageInfo: PageInfo; totalCount: int; pageSize: int
+    edges: List[VisitaEdge]; pageInfo: PageInfo; totalCount: int; pageSize: int; pageCount: int
 
 # Define the VisitaFilterInput
 @strawberry.input
@@ -418,7 +418,7 @@ class Query:
             )
 
             # Return Connection
-            return VisitaConnection(edges=edges, pageInfo=page_info, totalCount=total_count, pageSize=requested_page_size)
+            return VisitaConnection(edges=edges, pageInfo=page_info, totalCount=total_count, pageSize=requested_page_size, pageCount=len(edges))
 
         except ValueError as e: # Catch specific validation/cursor errors
              print(f"Input error: {e}")
@@ -427,7 +427,7 @@ class Query:
             print(f"Database error in resolver: {e}")
             # In a real API, you might want to return a more specific GraphQL error
             # For now, return an empty connection on DB errors
-            return VisitaConnection(edges=[], pageInfo=PageInfo(has_next_page=False, has_previous_page=False), totalCount=0, pageSize=0) # pageSize 0 for error
+            return VisitaConnection(edges=[], pageInfo=PageInfo(has_next_page=False, has_previous_page=False), totalCount=0, pageSize=0, pageCount=0) # pageCount 0 for error
         finally:
             if conn:
                 conn.close()
