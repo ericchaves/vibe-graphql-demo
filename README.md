@@ -131,7 +131,11 @@ The `VisitaFilterInput` allows filtering the `getVisitas` query based on various
 
 ```graphql
 query GetVisitasByDomain($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita nomeDominio }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita nomeDominio }
+    }
+  }
 }
 # Variables
 { "filter": { "nomeDominio": { "equals": "example.com" } } }
@@ -140,7 +144,11 @@ query GetVisitasByDomain($filter: VisitaFilterInput) {
 2.  **Combined Direct Fields (Implicit AND):** Find visits from "example.com" on "Mobile" devices.
 ```graphql
 query GetVisitasByDomainAndDevice($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita nomeDominio tipoDispositivo }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita nomeDominio tipoDispositivo }
+    }
+  }
 }
 # Variables
 {
@@ -154,7 +162,11 @@ query GetVisitasByDomainAndDevice($filter: VisitaFilterInput) {
 3.  **Using `between` for Timestamps:** Find visits between two specific times.
 ```graphql
 query GetVisitasByTimestampBetween($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita timestampVisita }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita timestampVisita }
+    }
+  }
 }
 # Variables
 {
@@ -169,7 +181,11 @@ query GetVisitasByTimestampBetween($filter: VisitaFilterInput) {
 4.  **Using `notBetween` for Integers:** Find visits not in years 2020-2022.
 ```graphql
 query GetVisitasByAnoNotBetween($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita ano }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita ano }
+    }
+  }
 }
 # Variables
 { "filter": { "ano": { "notBetween": [2020, 2022] } } }
@@ -178,7 +194,11 @@ query GetVisitasByAnoNotBetween($filter: VisitaFilterInput) {
 5.  **Explicit `AND`:** Find visits from "example.com" AND using "Desktop".
 ```graphql
 query GetVisitasExplicitAnd($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita nomeDominio tipoDispositivo }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita nomeDominio tipoDispositivo }
+    }
+  }
 }
 # Variables
 {
@@ -194,7 +214,11 @@ query GetVisitasExplicitAnd($filter: VisitaFilterInput) {
 6.  **Explicit `OR`:** Find visits using "Chrome" OR "Firefox".
 ```graphql
 query GetVisitasExplicitOr($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita nomeNavegador }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita nomeNavegador }
+    }
+  }
 }
 # Variables
 {
@@ -210,7 +234,11 @@ query GetVisitasExplicitOr($filter: VisitaFilterInput) {
 7.  **Nested Logic:** Find visits from "example.com" that are (from "USA" OR using "Chrome").
 ```graphql
 query GetVisitasNested($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) { idVisita nomeDominio paisGeografia nomeNavegador }
+  getVisitas(filter: $filter) {
+    edges {
+      node { idVisita nomeDominio paisGeografia nomeNavegador }
+    }
+  }
 }
 # Variables
 {
