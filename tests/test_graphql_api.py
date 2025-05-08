@@ -31,6 +31,18 @@ class TestGraphQLAPI(unittest.TestCase):
         if os.path.exists(DATABASE_FILE):
             os.remove(DATABASE_FILE)
 
+    def _run_query(self, query: str, variables: dict = None):
+        """Helper method to run a GraphQL query."""
+        json_payload = {"query": query}
+        if variables:
+            json_payload["variables"] = variables
+        response = self.client.post("/graphql", json=json_payload)
+        self.assertEqual(response.status_code, 200, f"GraphQL query failed: {response.text}")
+        data = response.json()
+        self.assertIsNone(data.get("errors"), f"GraphQL errors: {data.get('errors')}")
+        self.assertIsNotNone(data.get("data"), "GraphQL response missing data.")
+        return data["data"]
+
     def test_get_visitas_no_filter(self):
         """Test fetching all visits without any filter."""
         query = """
@@ -49,11 +61,8 @@ class TestGraphQLAPI(unittest.TestCase):
                 }
             }
         """
-        response = self.client.post("/graphql", json={"query": query})
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIsNotNone(data.get("data"))
-        visitas = data["data"].get("getVisitas")
+        data = self._run_query(query)
+        visitas = data.get("getVisitas")
         self.assertIsNotNone(visitas)
         self.assertGreater(len(visitas), 0) # Assuming seed_data adds some visits
 
@@ -74,11 +83,8 @@ class TestGraphQLAPI(unittest.TestCase):
                 }
             }
         }
-        response = self.client.post("/graphql", json={"query": query, "variables": variables})
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIsNotNone(data.get("data"))
-        visitas = data["data"].get("getVisitas")
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
         self.assertIsNotNone(visitas)
         self.assertGreater(len(visitas), 0)
         for visita in visitas:
@@ -105,14 +111,11 @@ class TestGraphQLAPI(unittest.TestCase):
                 }
             }
         }
-        response = self.client.post("/graphql", json={"query": query, "variables": variables})
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIsNotNone(data.get("data"))
-        visitas = data["data"].get("getVisitas")
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
         self.assertIsNotNone(visitas)
         # Assuming seed data includes visits matching this criteria
-        # self.assertGreater(len(visitas), 0)
+        # self.assertGreater(len(visitas), 0) # Check if seed data guarantees this
         for visita in visitas:
             self.assertEqual(visita["tipoDispositivo"], "Mobile")
             self.assertEqual(visita["nomeNavegador"], "Safari")
@@ -127,11 +130,6 @@ class TestGraphQLAPI(unittest.TestCase):
                 }
             }
         """
-        # Timestamps from seed_data.py are all on 2023-01-01
-        # The DimTempo entries range from 2023-01-01 00:00:00 to 2023-01-01 16:30:00
-        # FatoVisitas.timestamp_visita is a Unix timestamp derived from these.
-        # The GraphQL filter expects ISO datetime strings.
-
         start_time_dt = datetime.datetime(2023, 1, 1, 8, 0, 0, tzinfo=datetime.timezone.utc)
         end_time_dt = datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
 
@@ -143,15 +141,11 @@ class TestGraphQLAPI(unittest.TestCase):
                 }
             }
         }
-        response = self.client.post("/graphql", json={"query": query, "variables": variables})
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIsNotNone(data.get("data"))
-        visitas = data["data"].get("getVisitas")
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
         self.assertIsNotNone(visitas)
         self.assertGreater(len(visitas), 0) # Expect some visits in this range
 
-        # Convert filter times to Unix timestamps for comparison, as VisitaType.timestampVisita resolves to Int (Unix timestamp)
         start_ts_unix = int(start_time_dt.timestamp())
         end_ts_unix = int(end_time_dt.timestamp())
 
@@ -159,17 +153,9 @@ class TestGraphQLAPI(unittest.TestCase):
             self.assertIsNotNone(visita.get("timestampVisita"))
             visita_ts_str = visita["timestampVisita"]
             self.assertIsInstance(visita_ts_str, str)
-            # The resolver returns ISO format string. Convert it to a datetime object.
-            # The string might or might not have Z for UTC. datetime.fromisoformat handles this.
-            # If it includes microseconds, they need to be handled or stripped if not consistent.
-            # Assuming the format is like '2023-01-01T08:00:19' or '2023-01-01T08:00:19Z'
-            # If it has timezone offset like +00:00, fromisoformat handles it.
             try:
                 visita_dt = datetime.datetime.fromisoformat(visita_ts_str.replace('Z', '+00:00'))
             except ValueError:
-                 # Handle cases where timezone might not be 'Z' but an offset, or no tz info
-                 # For simplicity, if it fails, assume it's naive and UTC (consistent with seed data generation)
-                 # This part might need adjustment based on actual resolver output format
                 visita_dt = datetime.datetime.fromisoformat(visita_ts_str)
                 if visita_dt.tzinfo is None:
                     visita_dt = visita_dt.replace(tzinfo=datetime.timezone.utc)
@@ -195,17 +181,161 @@ class TestGraphQLAPI(unittest.TestCase):
                 }
             }
         }
-        response = self.client.post("/graphql", json={"query": query, "variables": variables})
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIsNotNone(data.get("data"))
-        visitas = data["data"].get("getVisitas")
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
         self.assertIsNotNone(visitas)
         # Assuming seed data includes visits with utm_source containing "goo" (e.g., "google")
-        # self.assertGreater(len(visitas), 0)
+        # self.assertGreater(len(visitas), 0) # Check if seed data guarantees this
         for visita in visitas:
             self.assertIsNotNone(visita["utmSource"])
             self.assertIn("goo", visita["utmSource"])
+
+    # --- New Tests for Etapa 10 ---
+
+    def test_filter_timestamp_between(self):
+        """Test filtering by timestamp using BETWEEN."""
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) { idVisita timestampVisita }
+            }
+        """
+        start_time = datetime.datetime(2023, 1, 1, 9, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2023, 1, 1, 11, 0, 0, tzinfo=datetime.timezone.utc)
+        variables = {
+            "filter": {
+                "timestampVisita": {
+                    "between": [start_time.isoformat(), end_time.isoformat()]
+                }
+            }
+        }
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertTrue(len(visitas) > 0) # Expect results
+        start_ts = start_time.timestamp()
+        end_ts = end_time.timestamp()
+        for v in visitas:
+            visita_dt = datetime.datetime.fromisoformat(v["timestampVisita"].replace('Z', '+00:00'))
+            visita_ts = visita_dt.timestamp()
+            self.assertTrue(start_ts <= visita_ts <= end_ts)
+
+    def test_filter_ano_not_between(self):
+        """Test filtering by year using NOT BETWEEN."""
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) { idVisita ano }
+            }
+        """
+        # Seed data only has 2023
+        variables = {
+            "filter": { "ano": { "notBetween": [2020, 2022] } }
+        }
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertTrue(len(visitas) > 0)
+        for v in visitas:
+            self.assertEqual(v["ano"], 2023)
+
+    def test_filter_explicit_and(self):
+        """Test filtering using explicit AND."""
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) { idVisita nomeDominio tipoDispositivo }
+            }
+        """
+        variables = {
+            "filter": {
+                "AND": [
+                    {"nomeDominio": {"equals": "example.com"}},
+                    {"tipoDispositivo": {"equals": "Desktop"}}
+                ]
+            }
+        }
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertTrue(len(visitas) > 0) # Assuming seed data has this combo
+        for v in visitas:
+            self.assertEqual(v["nomeDominio"], "example.com")
+            self.assertEqual(v["tipoDispositivo"], "Desktop")
+
+    def test_filter_explicit_or(self):
+        """Test filtering using explicit OR."""
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) { idVisita nomeNavegador }
+            }
+        """
+        variables = {
+            "filter": {
+                "OR": [
+                    {"nomeNavegador": {"equals": "Chrome"}},
+                    {"nomeNavegador": {"equals": "Firefox"}}
+                ]
+            }
+        }
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertTrue(len(visitas) > 0) # Assuming seed data has these browsers
+        for v in visitas:
+            self.assertIn(v["nomeNavegador"], ["Chrome", "Firefox"])
+
+    def test_filter_nested_and_or(self):
+        """Test filtering with nested AND/OR logic."""
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) { idVisita nomeDominio paisGeografia nomeNavegador }
+            }
+        """
+        # Find visits from example.com that are either from USA OR using Chrome browser
+        variables = {
+            "filter": {
+                "AND": [
+                    {"nomeDominio": {"equals": "example.com"}},
+                    {
+                        "OR": [
+                            {"paisGeografia": {"equals": "USA"}},
+                            {"nomeNavegador": {"equals": "Chrome"}}
+                        ]
+                    }
+                ]
+            }
+        }
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertTrue(len(visitas) > 0) # Assuming seed data allows this
+        for v in visitas:
+            self.assertEqual(v["nomeDominio"], "example.com")
+            self.assertTrue(v["paisGeografia"] == "USA" or v["nomeNavegador"] == "Chrome")
+
+    def test_filter_direct_and_or_combination(self):
+        """Test combination of direct field filters and OR block."""
+        query = """
+            query GetVisitas($filter: VisitaFilterInput) {
+                getVisitas(filter: $filter) { idVisita nomeDominio tipoDispositivo nomeNavegador }
+            }
+        """
+        # Find visits from example.com that are either Desktop OR Chrome
+        # Top-level fields are ANDed with the OR block
+        variables = {
+            "filter": {
+                "nomeDominio": {"equals": "example.com"},
+                "OR": [
+                    {"tipoDispositivo": {"equals": "Desktop"}},
+                    {"nomeNavegador": {"equals": "Chrome"}}
+                ]
+            }
+        }
+        data = self._run_query(query, variables)
+        visitas = data.get("getVisitas")
+        self.assertIsNotNone(visitas)
+        self.assertTrue(len(visitas) > 0)
+        for v in visitas:
+            self.assertEqual(v["nomeDominio"], "example.com")
+            self.assertTrue(v["tipoDispositivo"] == "Desktop" or v["nomeNavegador"] == "Chrome")
 
 
 if __name__ == '__main__':

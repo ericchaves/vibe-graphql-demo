@@ -110,29 +110,148 @@ The `VisitaType` consolidates relevant information from the `FatoVisitas` and al
 
 ### `VisitaFilterInput`
 
-The `VisitaFilterInput` allows filtering the `getVisitas` query based on various fields of the `VisitaType`. It utilizes generic `InputFilter` types for different data types (String, Int, DateTime) to enable complex filtering operations like equality, inequality, containment, range checks, and list inclusion/exclusion.
+The `VisitaFilterInput` allows filtering the `getVisitas` query based on various fields of the `VisitaType`. It utilizes generic `InputFilter` types (`StringFilterInput`, `IntFilterInput`, `DateTimeFilterInput`) for different data types to enable complex filtering operations.
 
-Example Query with Filter:
+**Supported Operations:**
+
+*   **Common:** `equals`, `notEquals`, `In`, `notIn`
+*   **String:** `contains`, `startsWith`, `endsWith`
+*   **Int/DateTime:** `greaterThan`, `greaterThanOrEqual`, `lessThan`, `lessThanOrEqual`, `between`, `notBetween`
+*   **Logical Combinators:** `AND`, `OR` (accept a list of `VisitaFilterInput` objects)
+
+**Implicit Logic:**
+
+*   Multiple conditions within a single field's filter input (e.g., `greaterThan` and `lessThan` for `timestampVisita`) are combined with `AND`.
+*   Filters applied to different direct fields at the same level (e.g., `nomeDominio` and `tipoDispositivo`) are combined with `AND`.
+*   If `AND` or `OR` fields are used at a level, they define the primary logic for combining the filters listed within them. Any direct field filters at the same level are implicitly `AND`ed with the result of the `AND`/`OR` block. For clarity, it's often best to nest all desired conditions within explicit `AND` or `OR` blocks.
+
+**Examples:**
+
+1.  **Simple Equality:** Find visits from "example.com".
 
 ```graphql
-query GetVisitasByDomainAndDevice($filter: VisitaFilterInput) {
-  getVisitas(filter: $filter) {
-    idVisita
-    nomeDominio
-    tipoDispositivo
-    nomeNavegador
-  }
+```graphql
+query GetVisitasByDomain($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita nomeDominio }
 }
+# Variables
+{ "filter": { "nomeDominio": { "equals": "example.com" } } }
+```
 
-# Query Variables
+2.  **Combined Direct Fields (Implicit AND):** Find visits from "example.com" on "Mobile" devices.
+```graphql
+query GetVisitasByDomainAndDevice($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita nomeDominio tipoDispositivo }
+}
+# Variables
 {
   "filter": {
-    "nomeDominio": {
-      "equals": "example.com"
-    },
-    "tipoDispositivo": {
-      "equals": "Mobile"
+    "nomeDominio": { "equals": "example.com" },
+    "tipoDispositivo": { "equals": "Mobile" }
+  }
+}
+```
+
+3.  **Using `between` for Timestamps:** Find visits between two specific times.
+```graphql
+query GetVisitasByTimestampBetween($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita timestampVisita }
+}
+# Variables
+{
+  "filter": {
+    "timestampVisita": {
+      "between": ["2023-01-01T09:00:00Z", "2023-01-01T11:00:00Z"]
     }
+  }
+}
+```
+
+4.  **Using `notBetween` for Integers:** Find visits not in years 2020-2022.
+```graphql
+query GetVisitasByAnoNotBetween($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita ano }
+}
+# Variables
+{ "filter": { "ano": { "notBetween": [2020, 2022] } } }
+```
+
+5.  **Explicit `AND`:** Find visits from "example.com" AND using "Desktop".
+```graphql
+query GetVisitasExplicitAnd($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita nomeDominio tipoDispositivo }
+}
+# Variables
+{
+  "filter": {
+    "AND": [
+      { "nomeDominio": { "equals": "example.com" } },
+      { "tipoDispositivo": { "equals": "Desktop" } }
+    ]
+  }
+}
+```
+
+6.  **Explicit `OR`:** Find visits using "Chrome" OR "Firefox".
+```graphql
+query GetVisitasExplicitOr($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita nomeNavegador }
+}
+# Variables
+{
+  "filter": {
+    "OR": [
+      { "nomeNavegador": { "equals": "Chrome" } },
+      { "nomeNavegador": { "equals": "Firefox" } }
+    ]
+  }
+}
+```
+
+7.  **Nested Logic:** Find visits from "example.com" that are (from "USA" OR using "Chrome").
+```graphql
+query GetVisitasNested($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita nomeDominio paisGeografia nomeNavegador }
+}
+# Variables
+{
+  "filter": {
+    "AND": [
+      { "nomeDominio": { "equals": "example.com" } },
+      {
+        "OR": [
+          { "paisGeografia": { "equals": "USA" } },
+          { "nomeNavegador": { "equals": "Chrome" } }
+        ]
+      }
+    ]
+  }
+}
+```
+
+8.  **Complex Combination:** Find visits that are ( (from "USA" AND "Mobile") OR (Browser="Chrome" AND Year between 2022-2023) ) AND occurred after 2023-01-01.
+```graphql
+query GetVisitasComplex($filter: VisitaFilterInput) {
+  getVisitas(filter: $filter) { idVisita nomeDominio paisGeografia tipoDispositivo nomeNavegador ano timestampVisita }
+}
+# Variables
+{
+  "filter": {
+    "timestampVisita": { "greaterThan": "2023-01-01T00:00:00Z" },
+    "OR": [
+      {
+        "AND": [
+          { "paisGeografia": { "equals": "USA" } },
+          { "tipoDispositivo": { "equals": "Mobile" } }
+        ]
+      },
+      {
+        "AND": [
+          { "nomeNavegador": { "equals": "Chrome" } },
+          { "ano": { "between": [2022, 2023] } }
+        ]
+      }
+    ]
   }
 }
 ```

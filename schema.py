@@ -115,6 +115,12 @@ def build_where_clause(filter: Any) -> tuple[str, list]:
             placeholders = ', '.join('?' for _ in filter_input.notIn)
             field_conditions.append(f"{alias}.{column} NOT IN ({placeholders})")
             params.extend(filter_input.notIn)
+        if filter_input.between is not None and len(filter_input.between) == 2:
+            field_conditions.append(f"{alias}.{column} BETWEEN ? AND ?")
+            params.extend(filter_input.between)
+        if filter_input.notBetween is not None and len(filter_input.notBetween) == 2:
+            field_conditions.append(f"{alias}.{column} NOT BETWEEN ? AND ?")
+            params.extend(filter_input.notBetween)
         return " AND ".join(field_conditions) if field_conditions else ""
 
     # Build conditions for DateTimeFilterInput (assuming timestamp_visita is INTEGER Unix timestamp)
@@ -150,31 +156,89 @@ def build_where_clause(filter: Any) -> tuple[str, list]:
             timestamps = [int(dt.timestamp()) for dt in filter_input.notIn]
             field_conditions.append(f"{alias}.{column} NOT IN ({placeholders})")
             params.extend(timestamps)
+        if filter_input.between is not None and len(filter_input.between) == 2:
+            timestamps = [int(dt.timestamp()) for dt in filter_input.between]
+            field_conditions.append(f"{alias}.{column} BETWEEN ? AND ?")
+            params.extend(timestamps)
+        if filter_input.notBetween is not None and len(filter_input.notBetween) == 2:
+            timestamps = [int(dt.timestamp()) for dt in filter_input.notBetween]
+            field_conditions.append(f"{alias}.{column} NOT BETWEEN ? AND ?")
+            params.extend(timestamps)
         return " AND ".join(field_conditions) if field_conditions else ""
 
+    # Recursive helper function to build clause for a filter object
+    def _build_clause_recursively(current_filter_obj, params_list_ref):
+        # params_list_ref is the main params list, modified by build_xxx_condition helpers
+        
+        parts_for_this_filter_obj = [] # Stores fully formed condition strings or block strings
 
+        # 1. Process direct field filters for the current_filter_obj
+        direct_field_strings = []
+        for field_name, f_input_val in current_filter_obj.__dict__.items():
+            if field_name in ["AND", "OR"] or f_input_val is None:
+                continue
+            
+            cond_str = ""
+            if isinstance(f_input_val, StringFilterInput):
+                cond_str = build_string_condition(field_name, f_input_val) # build_string_condition uses global `params`
+            elif isinstance(f_input_val, IntFilterInput):
+                cond_str = build_int_condition(field_name, f_input_val)
+            elif isinstance(f_input_val, DateTimeFilterInput) and field_name == "timestamp_visita":
+                cond_str = build_datetime_condition(field_name, f_input_val)
+            # Add other field types here if necessary
+            
+            if cond_str:
+                # If a single field's condition string itself contains " AND " (e.g. multiple ops on one field),
+                # it should be wrapped in parentheses to ensure correct precedence when combined with other direct fields.
+                if " AND " in cond_str:
+                    direct_field_strings.append(f"({cond_str})")
+                else:
+                    direct_field_strings.append(cond_str)
+
+        if direct_field_strings:
+            # If there's more than one direct field condition string, AND them together and wrap the whole group.
+            # If only one, it's used as is (it's either simple like "col=?" or already wrapped like "(col>1 AND col<5)").
+            if len(direct_field_strings) > 1:
+                parts_for_this_filter_obj.append(f"({' AND '.join(direct_field_strings)})")
+            else: # len == 1
+                parts_for_this_filter_obj.append(direct_field_strings[0])
+
+        # 2. Process AND list
+        if current_filter_obj.AND:
+            and_block_sub_clauses = []
+            for sub_filter_item in current_filter_obj.AND:
+                sub_clause_str = _build_clause_recursively(sub_filter_item, params_list_ref)
+                if sub_clause_str:
+                    and_block_sub_clauses.append(sub_clause_str)
+            if and_block_sub_clauses:
+                # Join sub-clauses with " AND " and wrap the entire AND block in parentheses.
+                parts_for_this_filter_obj.append(f"({' AND '.join(and_block_sub_clauses)})")
+                
+        # 3. Process OR list
+        if current_filter_obj.OR:
+            or_block_sub_clauses = []
+            for sub_filter_item in current_filter_obj.OR:
+                sub_clause_str = _build_clause_recursively(sub_filter_item, params_list_ref)
+                if sub_clause_str:
+                    or_block_sub_clauses.append(sub_clause_str)
+            if or_block_sub_clauses:
+                parts_for_this_filter_obj.append(f"({' OR '.join(or_block_sub_clauses)})")
+                
+        # All parts generated for this filter object (direct fields block, AND block, OR block)
+        # are implicitly ANDed together.
+        return " AND ".join(p for p in parts_for_this_filter_obj if p)
+
+    # Main part of build_where_clause
     if filter:
-        for field_name, filter_input in filter.__dict__.items():
-            if filter_input is not None:
-                if isinstance(filter_input, StringFilterInput):
-                    condition = build_string_condition(field_name, filter_input)
-                    if condition:
-                        conditions.append(condition)
-                elif isinstance(filter_input, IntFilterInput):
-                    condition = build_int_condition(field_name, filter_input)
-                    if condition:
-                        conditions.append(condition)
-                elif isinstance(filter_input, DateTimeFilterInput):
-                     # Handle timestamp_visita specifically as it's DateTimeFilterInput
-                    if field_name == "timestamp_visita":
-                        condition = build_datetime_condition(field_name, filter_input)
-                        if condition:
-                            conditions.append(condition)
-                    # Add other DateTime fields if any, with appropriate handling
-                # Add other filter types if needed
+        # `params` is a global list modified by build_xxx_condition helpers
+        # and _build_clause_recursively just needs to ensure they are called.
+        final_clause_str = _build_clause_recursively(filter, params) # Pass params for context if helpers need it, though they use global
+        if final_clause_str:
+            where_clause = " WHERE " + final_clause_str
+            return where_clause, params # Return the global params list
+    
+    return "", params # Return global params even if no clause
 
-    where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
-    return where_clause, params
 
 # Define generic InputFilter types
 @strawberry.input
@@ -197,6 +261,8 @@ class IntFilterInput:
     lessThanOrEqual: Optional[int] = None
     In: Optional[List[int]] = None
     notIn: Optional[List[int]] = None
+    between: Optional[tuple[int, int]] = None
+    notBetween: Optional[tuple[int, int]] = None
 
 @strawberry.input
 class DateTimeFilterInput:
@@ -208,6 +274,8 @@ class DateTimeFilterInput:
     lessThanOrEqual: Optional[datetime.datetime] = None
     In: Optional[List[datetime.datetime]] = None
     notIn: Optional[List[datetime.datetime]] = None
+    between: Optional[tuple[datetime.datetime, datetime.datetime]] = None
+    notBetween: Optional[tuple[datetime.datetime, datetime.datetime]] = None
 
 # Define the consolidated VisitaType
 @strawberry.type
@@ -326,6 +394,13 @@ class VisitaFilterInput:
     # DimReferencia
     url_referencia: Optional[StringFilterInput] = None
     tipo_referencia: Optional[StringFilterInput] = None
+
+    # --- Operadores lógicos para combinar filtros ---
+    # Forward declaration is needed if VisitaFilterInput refers to itself.
+    # We will define VisitaFilterInputType later if needed, or rely on Strawberry's handling.
+    AND: Optional[List['VisitaFilterInput']] = None
+    OR: Optional[List['VisitaFilterInput']] = None
+    # NOT: Optional['VisitaFilterInput'] = None # Potential future enhancement
 
 # Define the Query type
 @strawberry.type
