@@ -14,7 +14,20 @@ To set up the development environment, it is highly recommended to use the provi
 2.  **Open in Devcontainer:**
     *   If you have the VS Code Remote - Containers extension installed, VS Code should automatically prompt you to "Reopen in Container". Click this button.
     *   If not, open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P), search for "Remote-Containers: Reopen in Container", and select it.
-3.  **Install Dependencies:** The `postCreateCommand` in `.devcontainer/devcontainer.json` will automatically install the required Python packages (`strawberry-graphql[fastapi]`, `uvicorn`, `uvicorn[standard]`, `sqlalchemy`) when the container is built.
+3.  **Set up Virtual Environment and Install Dependencies:**
+    *   This project uses `uv` for Python package management.
+    *   Ensure you are inside the project directory (`graphql-filter-demo`).
+    *   Create and activate the virtual environment:
+        ```bash
+        uv venv
+        source .venv/bin/activate
+        ```
+    *   Install the required Python packages from `requirements.txt`:
+        ```bash
+        uv pip install -r requirements.txt
+        ```
+    *   Note: The `postCreateCommand` in `.devcontainer/devcontainer.json` also attempts to install dependencies when the devcontainer is first built. The steps above ensure you can manually set up or update the environment.
+
 4.  **Initialize the Database:** Run the initialization script to create the SQLite database and tables:
     ```bash
     python init_db.py

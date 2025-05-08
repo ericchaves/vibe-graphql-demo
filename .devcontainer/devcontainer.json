@@ -13,9 +13,10 @@
         "ms-python.python",
         "ms-python.vscode-pylance",
         "GraphQL.vscode-graphql",
-        "GraphQL.vscode-graphql-syntax"
+        "GraphQL.vscode-graphql-syntax",
+        "saoudrizwan.claude-dev"
       ]
     }
   },
-  "postCreateCommand": "pip install strawberry-graphql[fastapi] uvicorn 'uvicorn[standard]' sqlalchemy"
+  "postCreateCommand": "pip install uv && uv pip install -r requirements.txt"
 }

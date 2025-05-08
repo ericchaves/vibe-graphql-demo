@@ -28,6 +28,12 @@ This document outlines the workflow and practices to be followed during the deve
 *   Perform a commit after completing every task with a subsequent successfull code execution.
 *   After completing a stage from the `tasks.md` and its child tasks, Use the `git tag` command to create a taf with the stage number (e.g., `stage-1.0`) and a corresponding release note in the `changelog.md`.
 
+## Testing
+
+*   For every feature developed, write unit and behavioral tests to validate its functionality as planned.
+*   Tests must be executed whenever the code is changed to ensure no regressions are introduced.
+*   Tests should be reviewed and updated throughout the development process to reflect any changes in requirements or implementation.
+
 ## README.md
 
 *   Maintain a comprehensive `README.md` file at the root of the project.
@@ -43,3 +49,17 @@ This document outlines the workflow and practices to be followed during the deve
 ## Key Considerations
 
 - Only run and test the code inside a the devcontainer.
+
+## Dependency Management with `uv`
+
+*   This project exclusively uses `uv` for Python package management and virtual environments. All dependency operations must be performed using `uv`.
+*   **Installation:** `uv` is automatically installed and available within the devcontainer.
+*   **Managing Dependencies:**
+    *   **Installing from `requirements.txt`:** To install or synchronize with the project's dependencies: `uv pip install -r requirements.txt`
+    *   **Adding a new package:** `uv pip install <package_name>`
+    *   **Updating a package:** `uv pip install --upgrade <package_name>`
+    *   **Updating all packages from `requirements.txt`:** `uv pip install --upgrade -r requirements.txt` (Use with caution, ensure compatibility).
+*   **Maintaining `requirements.txt`:**
+    *   **Crucial:** After adding, removing, or updating any package, **immediately** update the `requirements.txt` file using: `uv pip freeze > requirements.txt`
+    *   This ensures that the `requirements.txt` file always reflects the exact state of the project's dependencies.
+*   **Important:** All `uv pip` commands must be run within the activated virtual environment.
