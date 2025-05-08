@@ -10,11 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- Refactored `getVisitas` query to accept `cursorArgs: CursorModeInput` and `offsetArgs: PaginationModeInput` for pagination, replacing direct pagination arguments. This improves clarity and structure for pagination parameters.
-- Updated `schema.py` with `CursorModeInput` and `PaginationModeInput` types.
-- Modified `get_visitas` resolver logic and validation to use the new input types.
-- Updated `tests/test_graphql_api.py` to align with the new pagination argument structure.
-- Revised `README.md` to document the new input types, updated `getVisitas` signature, and modified pagination examples.
 
 ### Deprecated
 
@@ -23,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [stage-13.0] - 2025-05-08
+
+### Changed
+- Refactored `getVisitas` query to accept `cursorArgs: CursorModeInput` and `offsetArgs: PaginationModeInput` for pagination, replacing direct pagination arguments. This improves clarity and structure for pagination parameters.
+- Updated `schema.py` with `CursorModeInput` and `PaginationModeInput` types.
+- Modified `get_visitas` resolver logic and validation to use the new input types.
+- Updated `tests/test_graphql_api.py` to align with the new pagination argument structure.
+- Revised `README.md` to document the new input types, updated `getVisitas` signature, and modified pagination examples.
 
 ## [stage-12.0] - 2025-05-08
 
