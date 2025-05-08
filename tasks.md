@@ -45,7 +45,13 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] Escrever testes unitários para construção de query SQL
     - [x] Escrever testes de integração para a API GraphQL
     - [x] Atualizar `tasks.md` e `changelog.md`
-- [x] Etapa X: Validação e Correção de Testes (Adicionado Pós-Etapa 6)
+
+- [x] Etapa 7: Documentação Final
+    - [x] Expandir o `README.md`
+    - [x] Garantir documentação da API GraphQL acessível
+    - [x] Atualizar `tasks.md` e `changelog.md`
+
+- [x] Etapa 8: Validação e Correção de Testes (Adicionado Pós-Etapa 6)
     - [x] Validar que todos os testes existentes estão corretos e rodando
     - [x] Corrigir `test_get_visitas_filter_by_timestamp_range` em `tests/test_graphql_api.py`
     - [x] Corrigir falhas em `tests/test_query_builder.py` devido a aliases de tabela
@@ -53,7 +59,10 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] Garantir que todos os testes passem usando `uv run python -m unittest discover -s tests -v`
     - [x] Atualizar `tasks.md` (esta tarefa)
 
-- [x] Etapa 7: Documentação Final
-    - [x] Expandir o `README.md`
-    - [x] Garantir documentação da API GraphQL acessível
-    - [x] Atualizar `tasks.md` e `changelog.md`
+- [ ] Etapa 9: Criação do Makefile
+    - [ ] Criar um `Makefile` com targets para:
+        - [ ] Rodar testes (`make test`)
+        - [ ] Rodar o servidor (`make run-server`)
+            - [ ] A task `run-server` deve inicializar o banco de dados (`init_db.py`)
+            - [ ] A task `run-server` deve alimentar os dados de seed (`seed_data.py`)
+    - [ ] Atualizar `tasks.md` e `changelog.md` (após a criação do Makefile)

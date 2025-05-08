@@ -2,6 +2,7 @@
   "name": "Python GraphQL Filter Demo",
   "image": "mcr.microsoft.com/devcontainers/python:3.10",
   "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
       "upgradePackages": true
@@ -18,5 +19,10 @@
       ]
     }
   },
-  "postCreateCommand": "pip install uv && uv pip install -r requirements.txt"
+  "postCreateCommand": "pip install uv && uv pip install -r requirements.txt",
+  "mounts": [
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ssh/id_rsa,target=/home/vscode/.ssh/id_rsa,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ssh/id_rsa,target=/home/vscode/.ssh/id_ecdsa,type=bind,consistency=cached"
+  ]
 }

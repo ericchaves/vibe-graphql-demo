@@ -17,11 +17,6 @@ To set up the development environment, it is highly recommended to use the provi
 3.  **Set up Virtual Environment and Install Dependencies:**
     *   This project uses `uv` for Python package management.
     *   Ensure you are inside the project directory (`graphql-filter-demo`).
-    *   Create and activate the virtual environment:
-        ```bash
-        uv venv
-        source .venv/bin/activate
-        ```
     *   Install the required Python packages from `requirements.txt`:
         ```bash
         uv pip install -r requirements.txt

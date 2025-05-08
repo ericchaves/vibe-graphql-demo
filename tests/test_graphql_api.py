@@ -1,5 +1,5 @@
 import unittest
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient # type: ignore
 import sqlite3
 import os
 import datetime
