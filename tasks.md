@@ -85,3 +85,16 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] 11.5. Atualizar `README.md` para documentar a paginação (argumentos, tipo de retorno, exemplos).
     - [x] 11.6. Atualizar `changelog.md` com as mudanças da Etapa 11.
     - [x] 11.7. Criar tag Git `stage-11.0` e notas de release no `changelog.md` após conclusão e validação.
+
+- [x] Etapa 12: Paginação Híbrida (Cursor e Offset) e Contagem Total
+    - [x] 12.1. Adicionar argumentos `limit` e `offset` à query `getVisitas` em `schema.py`.
+    - [x] 12.2. Adicionar campo `totalCount` ao tipo `VisitaConnection` em `schema.py`.
+    - [x] 12.3. Implementar validação de argumentos conflitantes (cursor vs offset) no resolver `getVisitas`.
+    - [x] 12.4. Implementar lógica de detecção de modo (cursor, offset, default) no resolver `getVisitas`.
+    - [x] 12.5. Implementar cálculo de `totalCount` (query `COUNT(*)` separada com filtros).
+    - [x] 12.6. Implementar construção condicional de query SQL (cursor vs offset/limit) no resolver.
+    - [x] 12.7. Implementar processamento condicional de resultados (cursor vs offset) para `PageInfo` e `edges`.
+    - [x] 12.8. Adicionar testes de integração em `tests/test_graphql_api.py` para offset, default, `totalCount`, e conflitos de argumentos.
+    - [x] 12.9. Atualizar `README.md` para documentar a paginação híbrida, `totalCount`, e regras de validação.
+    - [x] 12.10. Atualizar `changelog.md` com as mudanças da Etapa 12.
+    - [x] 12.11. Criar tag Git `stage-12.0` e notas de release no `changelog.md` após conclusão e validação.
