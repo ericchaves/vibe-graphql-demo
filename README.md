@@ -87,15 +87,15 @@ The API will be accessible at `http://localhost:8000`. You can also use the Make
 
 The GraphQL API provides a single query:
 
-*   `getVisitas(filter: VisitaFilterInput, first: Int, after: String, last: Int, before: String, limit: Int, offset: Int): VisitaConnection!`
+*   `getVisitas(filter: Optional[VisitaFilterInput], cursorArgs: Optional[CursorModeInput], offsetArgs: Optional[PaginationModeInput]): VisitaConnection!`
 
-This query allows fetching visit data with complex filtering capabilities (`VisitaFilterInput`) and supports two pagination modes:
-    1.  **Cursor-based (Relay):** Using `first`/`after` or `last`/`before`. This is the recommended method for stable pagination.
-    2.  **Offset-based:** Using `limit`/`offset`. Simpler but can be less reliable if data changes during pagination.
+This query allows fetching visit data with complex filtering capabilities (`VisitaFilterInput`) and supports two pagination modes, provided via mutually exclusive arguments:
+    1.  **Cursor-based (Relay):** Using the `cursorArgs: CursorModeInput` argument. This is the recommended method for stable pagination.
+    2.  **Offset-based:** Using the `offsetArgs: PaginationModeInput` argument. Simpler but can be less reliable if data changes during pagination.
 
-**Important:** You cannot mix cursor-based arguments (`first`, `after`, `last`, `before`) with offset-based arguments (`limit`, `offset`) in the same query. Doing so will result in an error.
+**Important:** You cannot provide both `cursorArgs` and `offsetArgs` in the same query. Doing so will result in an error.
 
-If no pagination arguments are provided, the query defaults to offset-based pagination with `offset: 0` and `limit: 20` (the default page size).
+If neither `cursorArgs` nor `offsetArgs` are provided, the query defaults to offset-based pagination with `offset: 0` and `limit: 20` (the default page size).
 
 ### `VisitaType`
 
@@ -310,14 +310,31 @@ query GetVisitasComplex($filter: VisitaFilterInput) {
 
 ### Pagination
 
-The `getVisitas` query supports cursor-based pagination using the following arguments:
+The `getVisitas` query supports two modes of pagination through dedicated input objects:
 
-*   `first: Int`: Returns the first `n` items.
-*   `after: String`: Returns items after the specified cursor. Must be used with `first`.
-*   `last: Int`: Returns the last `n` items.
-*   `before: String`: Returns items before the specified cursor. Must be used with `last`.
+#### 1. Cursor-based Pagination (`cursorArgs: CursorModeInput`)
 
-The query returns a `VisitaConnection` object with the following structure:
+This mode is ideal for stable pagination, especially with large datasets or frequently changing data.
+
+**`CursorModeInput` Fields:**
+
+*   `first: Optional[int]`: Returns the first `n` items.
+*   `after: Optional[str]`: Returns items after the specified cursor. Must be used with `first`.
+*   `last: Optional[int]`: Returns the last `n` items.
+*   `before: Optional[str]`: Returns items before the specified cursor. Must be used with `last`.
+
+#### 2. Offset-based Pagination (`offsetArgs: PaginationModeInput`)
+
+This mode is simpler for basic pagination needs but can be less reliable if data changes during pagination (e.g., items being inserted or deleted can shift pages).
+
+**`PaginationModeInput` Fields:**
+
+*   `limit: Optional[int]`: Specifies the maximum number of items to return (page size). Defaults to 20 if not provided.
+*   `offset: Optional[int]`: Specifies the number of items to skip from the beginning of the dataset. Defaults to 0 if not provided.
+
+#### `VisitaConnection` Object
+
+Regardless of the pagination mode used, the `getVisitas` query returns a `VisitaConnection` object with the following structure:
 
 *   `edges`: A list of `VisitaEdge` objects.
     *   `node`: The actual `VisitaType` data.
@@ -331,10 +348,10 @@ The query returns a `VisitaConnection` object with the following structure:
 
 **Pagination Examples:**
 
-1.  **Get the first 5 visits:**
+1.  **Get the first 5 visits (Cursor-based):**
 ```graphql
 query GetFirst5Visits {
-  getVisitas(first: 5) {
+  getVisitas(cursorArgs: {first: 5}) {
     edges {
       cursor
       node { idVisita nomeDominio }
@@ -347,10 +364,10 @@ query GetFirst5Visits {
 }
 ```
 
-2.  **Get the next 5 visits after a specific cursor:**
+2.  **Get the next 5 visits after a specific cursor (Cursor-based):**
 ```graphql
-query GetNext5Visits($afterCursor: String!) {
-  getVisitas(first: 5, after: $afterCursor) {
+query GetNext5Visits($cursorArgs: CursorModeInput) {
+  getVisitas(cursorArgs: $cursorArgs) {
     edges {
       cursor
       node { idVisita nomeDominio }
@@ -362,13 +379,13 @@ query GetNext5Visits($afterCursor: String!) {
   }
 }
 # Variables
-# { "afterCursor": "cursor_from_previous_page" }
+# { "cursorArgs": { "first": 5, "after": "cursor_from_previous_page" } }
 ```
 
-3.  **Get the last 3 visits:**
+3.  **Get the last 3 visits (Cursor-based):**
 ```graphql
 query GetLast3Visits {
-  getVisitas(last: 3) {
+  getVisitas(cursorArgs: {last: 3}) {
     edges {
       cursor
       node { idVisita nomeDominio }
@@ -381,10 +398,10 @@ query GetLast3Visits {
 }
 ```
 
-4.  **Get the previous 3 visits before a specific cursor:**
+4.  **Get the previous 3 visits before a specific cursor (Cursor-based):**
 ```graphql
-query GetPrevious3Visits($beforeCursor: String!) {
-  getVisitas(last: 3, before: $beforeCursor) {
+query GetPrevious3Visits($cursorArgs: CursorModeInput) {
+  getVisitas(cursorArgs: $cursorArgs) {
     edges {
       cursor
       node { idVisita nomeDominio }
@@ -396,13 +413,13 @@ query GetPrevious3Visits($beforeCursor: String!) {
   }
 }
 # Variables
-# { "beforeCursor": "cursor_from_subsequent_page" }
+# { "cursorArgs": { "last": 3, "before": "cursor_from_subsequent_page" } }
 ```
 
-5.  **Get the first 2 visits for a specific filter:**
+5.  **Get the first 2 visits for a specific filter (Cursor-based):**
 ```graphql
-query GetFilteredFirst2($filter: VisitaFilterInput) {
-  getVisitas(first: 2, filter: $filter) {
+query GetFilteredFirst2($filter: VisitaFilterInput, $cursorArgs: CursorModeInput) {
+  getVisitas(filter: $filter, cursorArgs: $cursorArgs) {
     edges {
       cursor
       node { idVisita nomeDominio tipoDispositivo }
@@ -414,13 +431,16 @@ query GetFilteredFirst2($filter: VisitaFilterInput) {
   }
 }
 # Variables
-{ "filter": { "tipoDispositivo": { "equals": "Mobile" } } }
+# {
+#   "filter": { "tipoDispositivo": { "equals": "Mobile" } },
+#   "cursorArgs": { "first": 2 }
+# }
 ```
 
-6.  **Get 10 visits starting from offset 20 (Offset Pagination):**
+6.  **Get 10 visits starting from offset 20 (Offset-based):**
 ```graphql
-query GetOffsetPage {
-  getVisitas(limit: 10, offset: 20) {
+query GetOffsetPage($offsetArgs: PaginationModeInput) {
+  getVisitas(offsetArgs: $offsetArgs) {
     edges {
       cursor # Cursors are still provided for consistency
       node { idVisita nomeDominio }
@@ -432,12 +452,14 @@ query GetOffsetPage {
     totalCount
   }
 }
+# Variables
+# { "offsetArgs": { "limit": 10, "offset": 20 } }
 ```
 
-7.  **Get default first page (Offset Pagination, default limit/offset):**
+7.  **Get default first page (No pagination args provided - defaults to Offset-based):**
 ```graphql
 query GetDefaultPage {
-  getVisitas { # No pagination args provided
+  getVisitas { # No cursorArgs or offsetArgs provided
     edges {
       cursor
       node { idVisita nomeDominio }

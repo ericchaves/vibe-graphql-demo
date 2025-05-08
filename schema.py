@@ -164,6 +164,19 @@ class DateTimeFilterInput:
     between: Optional[tuple[datetime.datetime, datetime.datetime]] = None
     notBetween: Optional[tuple[datetime.datetime, datetime.datetime]] = None
 
+# Define generic InputFilter types
+@strawberry.input
+class CursorModeInput:
+    first: Optional[int] = None
+    after: Optional[str] = None
+    last: Optional[int] = None
+    before: Optional[str] = None
+
+@strawberry.input
+class PaginationModeInput:
+    limit: Optional[int] = None
+    offset: Optional[int] = None
+
 # Define the consolidated VisitaType
 @strawberry.type
 class VisitaType:
@@ -220,70 +233,73 @@ class Query:
     def get_visitas(
         self,
         filter: Optional[VisitaFilterInput] = None,
-        # Cursor Args
-        first: Optional[int] = None,
-        after: Optional[str] = None,
-        last: Optional[int] = None,
-        before: Optional[str] = None,
-        # Offset Args
-        limit: Optional[int] = None,
-        offset: Optional[int] = None
+        cursor_args: Optional[CursorModeInput] = None,
+        offset_args: Optional[PaginationModeInput] = None
     ) -> VisitaConnection:
         # --- Argument Validation ---
-        is_cursor_pagination = first is not None or last is not None or after is not None or before is not None
-        is_offset_pagination = limit is not None or offset is not None
+        if cursor_args and offset_args:
+            raise ValueError("Cannot use `cursorArgs` and `offsetArgs` simultaneously.")
 
-        if is_cursor_pagination and is_offset_pagination:
-            raise ValueError("Cannot mix cursor-based arguments (first, after, last, before) with offset-based arguments (limit, offset).")
-        if first is not None and last is not None:
-            raise ValueError("Cannot use `first` and `last` arguments together.")
-        if after is not None and first is None:
-             raise ValueError("`after` cursor must be used with `first` argument.")
-        if before is not None and last is None:
-             raise ValueError("`before` cursor must be used with `last` argument.")
-        if limit is not None and limit < 0:
-             raise ValueError("`limit` argument must be non-negative.")
-        if offset is not None and offset < 0:
-             raise ValueError("`offset` argument must be non-negative.")
-        if first is not None and first < 0:
-             raise ValueError("`first` argument must be non-negative.")
-        if last is not None and last < 0:
-             raise ValueError("`last` argument must be non-negative.")
+        # Validate cursor_args
+        if cursor_args:
+            if cursor_args.first is not None and cursor_args.last is not None:
+                raise ValueError("Cannot use `first` and `last` arguments together in `cursorArgs`.")
+            if cursor_args.after is not None and cursor_args.first is None:
+                raise ValueError("`after` cursor must be used with `first` argument in `cursorArgs`.")
+            if cursor_args.before is not None and cursor_args.last is None:
+                raise ValueError("`before` cursor must be used with `last` argument in `cursorArgs`.")
+            if cursor_args.first is not None and cursor_args.first < 0:
+                raise ValueError("`first` argument in `cursorArgs` must be non-negative.")
+            if cursor_args.last is not None and cursor_args.last < 0:
+                raise ValueError("`last` argument in `cursorArgs` must be non-negative.")
+
+        # Validate offset_args
+        if offset_args:
+            if offset_args.limit is not None and offset_args.limit < 0:
+                raise ValueError("`limit` argument in `offsetArgs` must be non-negative.")
+            if offset_args.offset is not None and offset_args.offset < 0:
+                raise ValueError("`offset` argument in `offsetArgs` must be non-negative.")
 
         # --- Determine Pagination Mode & Variables ---
-        pagination_mode = "default" # Will become offset-based
+        pagination_mode = "default"
         sql_limit = DEFAULT_PAGE_SIZE
         sql_offset = 0
-        order_by_clause = " ORDER BY fv.timestamp_visita ASC, fv.id_visita ASC " # Default order
+        order_by_clause = " ORDER BY fv.timestamp_visita ASC, fv.id_visita ASC "
         pagination_conditions = []
         pagination_params = []
-        fetch_extra_for_page_info = False # Only for cursor mode
+        fetch_extra_for_page_info = False
 
-        if is_cursor_pagination:
+        if cursor_args:
             pagination_mode = "cursor"
             fetch_extra_for_page_info = True
-            after_timestamp, after_id = decode_cursor(after) if after else (None, None)
-            before_timestamp, before_id = decode_cursor(before) if before else (None, None)
+            after_timestamp, after_id = decode_cursor(cursor_args.after) if cursor_args.after else (None, None)
+            before_timestamp, before_id = decode_cursor(cursor_args.before) if cursor_args.before else (None, None)
 
-            if first is not None:
-                sql_limit = first + 1
+            if cursor_args.first is not None:
+                sql_limit = cursor_args.first + 1
                 if after_timestamp is not None:
                     pagination_conditions.append("(fv.timestamp_visita > ? OR (fv.timestamp_visita = ? AND fv.id_visita > ?))")
                     pagination_params.extend([after_timestamp, after_timestamp, after_id])
-            elif last is not None:
-                sql_limit = last + 1
+            elif cursor_args.last is not None:
+                sql_limit = cursor_args.last + 1
                 order_by_clause = " ORDER BY fv.timestamp_visita DESC, fv.id_visita DESC "
                 if before_timestamp is not None:
                     pagination_conditions.append("(fv.timestamp_visita < ? OR (fv.timestamp_visita = ? AND fv.id_visita < ?))")
                     pagination_params.extend([before_timestamp, before_timestamp, before_id])
-            else: # Only after or before provided without first/last - invalid per validation, but handle defensively
-                 sql_limit = DEFAULT_PAGE_SIZE + 1 # Apply default limit if only cursor is given
+            # If only 'after' or 'before' is provided without 'first' or 'last',
+            # it's an invalid state caught by earlier validation.
+            # If no cursor pagination args are provided within cursor_args (e.g. empty object),
+            # it might fall through, but the intent is for specific args to be present.
+            # For safety, if cursor_args is present but no first/last, apply a default limit.
+            elif not cursor_args.first and not cursor_args.last:
+                 sql_limit = DEFAULT_PAGE_SIZE + 1
 
-        elif is_offset_pagination:
+
+        elif offset_args:
             pagination_mode = "offset"
-            sql_limit = limit if limit is not None else DEFAULT_PAGE_SIZE
-            sql_offset = offset if offset is not None else 0
-        else: # Default mode (no args)
+            sql_limit = offset_args.limit if offset_args.limit is not None else DEFAULT_PAGE_SIZE
+            sql_offset = offset_args.offset if offset_args.offset is not None else 0
+        else: # Default mode (no pagination args provided)
             pagination_mode = "offset" # Treat default as offset
             sql_limit = DEFAULT_PAGE_SIZE
             sql_offset = 0
@@ -353,10 +369,10 @@ class Query:
             
             # Cursor mode page info logic
             if pagination_mode == "cursor" and fetch_extra_for_page_info and len(rows) == sql_limit:
-                if last is not None: # Backward pagination
+                if cursor_args and cursor_args.last is not None: # Backward pagination
                     has_previous = True
                     rows = rows[:-1] # Remove extra item fetched for check
-                else: # Forward pagination
+                else: # Forward pagination (or if cursor_args is None but somehow in cursor_mode)
                     has_next = True
                     rows = rows[:-1] # Remove extra item fetched for check
             
@@ -366,7 +382,7 @@ class Query:
                  has_next = (sql_offset + len(rows)) < total_count
 
             # Reverse results if backward pagination was used (cursor mode only)
-            if pagination_mode == "cursor" and last is not None:
+            if pagination_mode == "cursor" and cursor_args and cursor_args.last is not None:
                 rows.reverse()
 
             # Build Edges

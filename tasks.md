@@ -98,3 +98,10 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] 12.9. Atualizar `README.md` para documentar a paginação híbrida, `totalCount`, e regras de validação.
     - [x] 12.10. Atualizar `changelog.md` com as mudanças da Etapa 12.
     - [x] 12.11. Criar tag Git `stage-12.0` e notas de release no `changelog.md` após conclusão e validação.
+
+- [x] Etapa 13: Refatorar Paginação `getVisitas` com Input Types
+    - [x] 13.1. Definir `CursorModeInput` e `PaginationModeInput` em `schema.py`.
+    - [x] 13.2. Modificar `get_visitas` para usar `cursorArgs` e `offsetArgs` em `schema.py`.
+    - [x] 13.3. Atualizar testes em `tests/test_graphql_api.py` para usar os novos input types.
+    - [x] 13.4. Atualizar `README.md` com a nova assinatura e exemplos de paginação.
+    - [x] 13.5. Atualizar `tasks.md` (esta tarefa).

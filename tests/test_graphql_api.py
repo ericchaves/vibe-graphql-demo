@@ -74,7 +74,7 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching visits without filter, checking connection structure and totalCount."""
         query = """
             query {
-                getVisitas { # Default pagination (offset) should apply
+                getVisitas { # Default pagination (offset_args: null or not provided) should apply
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
@@ -200,15 +200,15 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching the first N items."""
         n = 5
         query = """
-            query GetFirstN($first: Int) {
-                getVisitas(first: $first) {
+            query GetFirstN($cursorArgs: CursorModeInput) {
+                getVisitas(cursorArgs: $cursorArgs) {
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
                 }
             }
         """
-        variables = {"first": n}
+        variables = {"cursorArgs": {"first": n}}
         data = self._run_query(query, variables)
         connection = data.get("getVisitas")
         self.assertIsNotNone(connection)
@@ -223,8 +223,8 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching the next page using first and after."""
         n1 = 3
         n2 = 4
-        query1 = """ query GetFirst($first: Int) { getVisitas(first: $first) { edges { cursor } pageInfo { endCursor hasNextPage } totalCount } } """
-        variables1 = {"first": n1}
+        query1 = """ query GetFirst($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { cursor } pageInfo { endCursor hasNextPage } totalCount } } """
+        variables1 = {"cursorArgs": {"first": n1}}
         data1 = self._run_query(query1, variables1)
         connection1 = data1.get("getVisitas")
         self.assertTrue(connection1["pageInfo"]["hasNextPage"])
@@ -232,8 +232,8 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(last_cursor)
         self.assertEqual(connection1["totalCount"], self.TOTAL_VISITAS)
 
-        query2 = """ query GetNext($first: Int, $after: String) { getVisitas(first: $first, after: $after) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } } """
-        variables2 = {"first": n2, "after": last_cursor}
+        query2 = """ query GetNext($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } } """
+        variables2 = {"cursorArgs": {"first": n2, "after": last_cursor}}
         data2 = self._run_query(query2, variables2)
         connection2 = data2.get("getVisitas")
         self.assertIsNotNone(connection2)
@@ -246,15 +246,15 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching the last N items."""
         n = 6
         query = """
-            query GetLastN($last: Int) {
-                getVisitas(last: $last) {
+            query GetLastN($cursorArgs: CursorModeInput) {
+                getVisitas(cursorArgs: $cursorArgs) {
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
                 }
             }
         """
-        variables = {"last": n}
+        variables = {"cursorArgs": {"last": n}}
         data = self._run_query(query, variables)
         connection = data.get("getVisitas")
         self.assertIsNotNone(connection)
@@ -269,8 +269,8 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test fetching the previous page using last and before."""
         n1 = 7
         n2 = 4
-        query1 = """ query GetLast($last: Int) { getVisitas(last: $last) { edges { cursor } pageInfo { startCursor hasPreviousPage } totalCount } } """
-        variables1 = {"last": n1}
+        query1 = """ query GetLast($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { cursor } pageInfo { startCursor hasPreviousPage } totalCount } } """
+        variables1 = {"cursorArgs": {"last": n1}}
         data1 = self._run_query(query1, variables1)
         connection1 = data1.get("getVisitas")
         self.assertTrue(connection1["pageInfo"]["hasPreviousPage"])
@@ -278,8 +278,8 @@ class TestGraphQLAPI(unittest.TestCase):
         self.assertIsNotNone(first_cursor)
         self.assertEqual(connection1["totalCount"], self.TOTAL_VISITAS)
 
-        query2 = """ query GetPrevious($last: Int, $before: String) { getVisitas(last: $last, before: $before) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } } """
-        variables2 = {"last": n2, "before": first_cursor}
+        query2 = """ query GetPrevious($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { edges { node { idVisita } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } } """
+        variables2 = {"cursorArgs": {"last": n2, "before": first_cursor}}
         data2 = self._run_query(query2, variables2)
         connection2 = data2.get("getVisitas")
         self.assertIsNotNone(connection2)
@@ -292,15 +292,15 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test pagination combined with filters."""
         n = 2
         query = """
-            query GetFilteredPaginated($first: Int, $after: String, $filter: VisitaFilterInput) {
-                getVisitas(first: $first, after: $after, filter: $filter) {
+            query GetFilteredPaginated($cursorArgs: CursorModeInput, $filter: VisitaFilterInput) {
+                getVisitas(cursorArgs: $cursorArgs, filter: $filter) {
                     edges { node { idVisita nomeDominio } cursor }
                     pageInfo { endCursor hasNextPage }
                     totalCount
                 }
             }
         """
-        variables = { "first": n, "filter": {"nomeDominio": {"equals": "example.com"}} }
+        variables = { "cursorArgs": {"first": n}, "filter": {"nomeDominio": {"equals": "example.com"}} }
         data1 = self._run_query(query, variables)
         connection1 = data1.get("getVisitas")
         self.assertIsNotNone(connection1)
@@ -309,7 +309,7 @@ class TestGraphQLAPI(unittest.TestCase):
         for edge in connection1["edges"]: self.assertEqual(edge["node"]["nomeDominio"], "example.com")
 
         if connection1["pageInfo"]["hasNextPage"]:
-            variables["after"] = connection1["pageInfo"]["endCursor"]
+            variables["cursorArgs"]["after"] = connection1["pageInfo"]["endCursor"]
             data2 = self._run_query(query, variables)
             connection2 = data2.get("getVisitas")
             self.assertIsNotNone(connection2)
@@ -325,15 +325,15 @@ class TestGraphQLAPI(unittest.TestCase):
         limit = 10
         offset = 5
         query = """
-            query GetOffset($limit: Int, $offset: Int) {
-                getVisitas(limit: $limit, offset: $offset) {
+            query GetOffset($offsetArgs: PaginationModeInput) {
+                getVisitas(offsetArgs: $offsetArgs) {
                     edges { node { idVisita } cursor }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     totalCount
                 }
             }
         """
-        variables = {"limit": limit, "offset": offset}
+        variables = {"offsetArgs": {"limit": limit, "offset": offset}}
         data = self._run_query(query, variables)
         connection = data.get("getVisitas")
         self.assertIsNotNone(connection)
@@ -348,15 +348,15 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test offset pagination with only offset provided (uses default limit)."""
         offset = DEFAULT_PAGE_SIZE
         query = """
-            query GetOffsetOnly($offset: Int) {
-                getVisitas(offset: $offset) {
+            query GetOffsetOnly($offsetArgs: PaginationModeInput) {
+                getVisitas(offsetArgs: $offsetArgs) {
                     edges { node { idVisita } }
                     pageInfo { hasNextPage hasPreviousPage }
                     totalCount
                 }
             }
         """
-        variables = {"offset": offset}
+        variables = {"offsetArgs": {"offset": offset}}
         data = self._run_query(query, variables)
         connection = data.get("getVisitas")
         self.assertIsNotNone(connection)
@@ -370,15 +370,15 @@ class TestGraphQLAPI(unittest.TestCase):
         """Test offset pagination with only limit provided (uses offset=0)."""
         limit = 8
         query = """
-            query GetLimitOnly($limit: Int) {
-                getVisitas(limit: $limit) {
+            query GetLimitOnly($offsetArgs: PaginationModeInput) {
+                getVisitas(offsetArgs: $offsetArgs) {
                     edges { node { idVisita } }
                     pageInfo { hasNextPage hasPreviousPage }
                     totalCount
                 }
             }
         """
-        variables = {"limit": limit}
+        variables = {"offsetArgs": {"limit": limit}}
         data = self._run_query(query, variables)
         connection = data.get("getVisitas")
         self.assertIsNotNone(connection)
@@ -409,32 +409,34 @@ class TestGraphQLAPI(unittest.TestCase):
 
     def test_pagination_conflict_first_limit(self):
         """Test conflicting arguments: first and limit."""
-        query = """ query Conflict { getVisitas(first: 5, limit: 10) { totalCount } } """
-        self._run_query(query, expect_error=True)
+        query = """ query Conflict($cursorArgs: CursorModeInput, $offsetArgs: PaginationModeInput) { getVisitas(cursorArgs: $cursorArgs, offsetArgs: $offsetArgs) { totalCount } } """
+        variables = {"cursorArgs": {"first": 5}, "offsetArgs": {"limit": 10}}
+        self._run_query(query, variables, expect_error=True)
 
     def test_pagination_conflict_after_offset(self):
         """Test conflicting arguments: after and offset."""
         # Need a valid cursor first
-        data = self._run_query(""" query GetCursor { getVisitas(first: 1) { pageInfo { endCursor } } } """)
+        data = self._run_query(""" query GetCursor($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { pageInfo { endCursor } } } """, {"cursorArgs": {"first": 1}})
         cursor = data["getVisitas"]["pageInfo"]["endCursor"]
 
-        query = """ query Conflict($after: String, $offset: Int) { getVisitas(first: 5, after: $after, offset: $offset) { totalCount } } """
-        variables = {"after": cursor, "offset": 5}
+        query = """ query Conflict($cursorArgs: CursorModeInput, $offsetArgs: PaginationModeInput) { getVisitas(cursorArgs: $cursorArgs, offsetArgs: $offsetArgs) { totalCount } } """
+        variables = {"cursorArgs": {"first": 5, "after": cursor}, "offsetArgs": {"offset": 5}}
         self._run_query(query, variables, expect_error=True)
 
     def test_pagination_conflict_last_limit(self):
         """Test conflicting arguments: last and limit."""
-        query = """ query Conflict { getVisitas(last: 3, limit: 5) { totalCount } } """
-        self._run_query(query, expect_error=True)
+        query = """ query Conflict($cursorArgs: CursorModeInput, $offsetArgs: PaginationModeInput) { getVisitas(cursorArgs: $cursorArgs, offsetArgs: $offsetArgs) { totalCount } } """
+        variables = {"cursorArgs": {"last": 3}, "offsetArgs": {"limit": 5}}
+        self._run_query(query, variables, expect_error=True)
 
     def test_pagination_conflict_before_offset(self):
         """Test conflicting arguments: before and offset."""
          # Need a valid cursor first
-        data = self._run_query(""" query GetCursor { getVisitas(last: 1) { pageInfo { startCursor } } } """)
+        data = self._run_query(""" query GetCursor($cursorArgs: CursorModeInput) { getVisitas(cursorArgs: $cursorArgs) { pageInfo { startCursor } } } """, {"cursorArgs": {"last": 1}})
         cursor = data["getVisitas"]["pageInfo"]["startCursor"]
 
-        query = """ query Conflict($before: String, $offset: Int) { getVisitas(last: 5, before: $before, offset: $offset) { totalCount } } """
-        variables = {"before": cursor, "offset": 5}
+        query = """ query Conflict($cursorArgs: CursorModeInput, $offsetArgs: PaginationModeInput) { getVisitas(cursorArgs: $cursorArgs, offsetArgs: $offsetArgs) { totalCount } } """
+        variables = {"cursorArgs": {"last": 5, "before": cursor}, "offsetArgs": {"offset": 5}}
         self._run_query(query, variables, expect_error=True)
 
 
