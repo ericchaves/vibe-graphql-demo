@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+- Corrected `Makefile` `run-server` target to use `python -m uvicorn main:app --reload` for starting the server.
 - Corrected and completed the `test_get_visitas_filter_by_timestamp_range` test in `tests/test_graphql_api.py`.
 - Ensured all tests pass by running them with `uv run python -m unittest discover -s tests -v`.
 - Resolved initial test execution failures by installing dependencies with `uv pip install -r requirements.txt` and running tests within the `uv` managed environment.

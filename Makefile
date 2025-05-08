@@ -31,7 +31,7 @@ run-server:
 	@echo "Seeding data..."
 	@$(ACTIVATE_VENV) $(PYTHON) seed_data.py
 	@echo "Starting server..."
-	@$(ACTIVATE_VENV) $(PYTHON) main.py
+	@$(ACTIVATE_VENV) $(PYTHON) -m uvicorn main:app --reload
 
 # Target to clean up (optional, can be expanded)
 # Note: VENV_DIR cleanup is conditional as it might not exist in devcontainer if not created.

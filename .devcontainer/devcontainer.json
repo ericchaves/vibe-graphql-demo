@@ -19,7 +19,7 @@
       ]
     }
   },
-  "postCreateCommand": "pip install uv && uv pip install -r requirements.txt",
+  "postCreateCommand": "pip install -r requirements.txt",
   "mounts": [
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.ssh/id_rsa,target=/home/vscode/.ssh/id_rsa,type=bind,consistency=cached",
