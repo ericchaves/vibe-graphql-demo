@@ -130,7 +130,6 @@ The `VisitaFilterInput` allows filtering the `getVisitas` query based on various
 1.  **Simple Equality:** Find visits from "example.com".
 
 ```graphql
-```graphql
 query GetVisitasByDomain($filter: VisitaFilterInput) {
   getVisitas(filter: $filter) { idVisita nomeDominio }
 }

@@ -66,3 +66,13 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
             - [x] A task `run-server` deve inicializar o banco de dados (`init_db.py`)
             - [x] A task `run-server` deve alimentar os dados de seed (`seed_data.py`)
     - [x] Atualizar `tasks.md` e `changelog.md` (após a criação do Makefile)
+
+- [x] Etapa 10: Melhorias Avançadas de Filtragem, Testes e Documentação
+    - [x] 10.1. Modificar `IntFilterInput` e `DateTimeFilterInput` em `schema.py` para incluir operações `between` e `notBetween`.
+    - [x] 10.2. Revisar `VisitaFilterInput` em `schema.py` para adicionar campos `AND` e `OR` para lógica combinada.
+    - [x] 10.3. Atualizar a lógica de construção de query SQL em `schema.py` para suportar `BETWEEN`, `NOT BETWEEN`, `AND` e `OR`.
+    - [x] 10.4. Desenvolver novos testes unitários em `tests/test_query_builder.py` para as novas operações e lógicas de filtro.
+    - [x] 10.5. Desenvolver novos testes de integração em `tests/test_graphql_api.py` para as novas funcionalidades de filtro.
+    - [x] 10.6. Atualizar `README.md` com exemplos práticos das novas operações de filtro (`BETWEEN`, `NOT BETWEEN`, `AND`, `OR`) e combinações.
+    - [x] 10.7. Atualizar `changelog.md` com as mudanças da Etapa 10.
+    - [x] 10.8. Criar tag Git `stage-10.0` e notas de release no `changelog.md` após conclusão e validação.
