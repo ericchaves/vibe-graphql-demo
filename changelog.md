@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [stage-12.0] - 2025-05-08
+
+### Added
 - Added offset-based pagination arguments (`limit`, `offset`) to `getVisitas` query.
 - Added `totalCount` field to `VisitaConnection` type.
 - Implemented hybrid pagination logic in `getVisitas` resolver:
@@ -20,14 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated `README.md` to document hybrid pagination, `totalCount`, validation rules, and add offset examples.
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
 
 ## [stage-11.0] - 2025-05-08
 
