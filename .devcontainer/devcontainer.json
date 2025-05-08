@@ -1,0 +1,21 @@
+{
+  "name": "Python GraphQL Filter Demo",
+  "image": "mcr.microsoft.com/devcontainers/python:3.10",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "upgradePackages": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "GraphQL.vscode-graphql",
+        "GraphQL.vscode-graphql-syntax"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install strawberry-graphql[fastapi] uvicorn 'uvicorn[standard]' sqlalchemy"
+}
