@@ -59,10 +59,10 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] Garantir que todos os testes passem usando `uv run python -m unittest discover -s tests -v`
     - [x] Atualizar `tasks.md` (esta tarefa)
 
-- [ ] Etapa 9: Criação do Makefile
-    - [ ] Criar um `Makefile` com targets para:
-        - [ ] Rodar testes (`make test`)
-        - [ ] Rodar o servidor (`make run-server`)
-            - [ ] A task `run-server` deve inicializar o banco de dados (`init_db.py`)
-            - [ ] A task `run-server` deve alimentar os dados de seed (`seed_data.py`)
-    - [ ] Atualizar `tasks.md` e `changelog.md` (após a criação do Makefile)
+- [x] Etapa 9: Criação do Makefile
+    - [x] Criar um `Makefile` com targets para:
+        - [x] Rodar testes (`make test`)
+        - [x] Rodar o servidor (`make run-server`)
+            - [x] A task `run-server` deve inicializar o banco de dados (`init_db.py`)
+            - [x] A task `run-server` deve alimentar os dados de seed (`seed_data.py`)
+    - [x] Atualizar `tasks.md` e `changelog.md` (após a criação do Makefile)

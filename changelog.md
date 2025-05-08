@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created `Makefile` with targets for `test`, `run-server`, and `clean` (Etapa 9).
 - Added new task to `tasks.md` for creating a Makefile (Etapa 9).
 - `httpx` dependency to `requirements.txt` for `fastapi.testclient`.
 
