@@ -76,3 +76,12 @@ This document tracks the planned and completed tasks for the GraphQL Filter Demo
     - [x] 10.6. Atualizar `README.md` com exemplos práticos das novas operações de filtro (`BETWEEN`, `NOT BETWEEN`, `AND`, `OR`) e combinações.
     - [x] 10.7. Atualizar `changelog.md` com as mudanças da Etapa 10.
     - [x] 10.8. Criar tag Git `stage-10.0` e notas de release no `changelog.md` após conclusão e validação.
+
+- [ ] Etapa 11: Implementação de Paginação (Relay Cursor Connections)
+    - [ ] 11.1. Definir tipos `PageInfo`, `VisitaEdge`, `VisitaConnection` em `schema.py`.
+    - [ ] 11.2. Modificar query `getVisitas` em `schema.py` para aceitar argumentos de paginação (`first`, `after`, `last`, `before`) e retornar `VisitaConnection`.
+    - [ ] 11.3. Implementar lógica de paginação baseada em cursor no resolver `getVisitas` em `schema.py` (incluindo validação, codificação/decodificação de cursor, modificação da query SQL, processamento de resultados).
+    - [ ] 11.4. Adicionar testes de integração em `tests/test_graphql_api.py` para validar a paginação (forward, backward, com filtros, casos de borda).
+    - [ ] 11.5. Atualizar `README.md` para documentar a paginação (argumentos, tipo de retorno, exemplos).
+    - [ ] 11.6. Atualizar `changelog.md` com as mudanças da Etapa 11.
+    - [ ] 11.7. Criar tag Git `stage-11.0` e notas de release no `changelog.md` após conclusão e validação.
