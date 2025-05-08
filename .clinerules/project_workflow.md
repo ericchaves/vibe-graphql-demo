@@ -50,16 +50,38 @@ This document outlines the workflow and practices to be followed during the deve
 
 - Only run and test the code inside a the devcontainer.
 
-## Dependency Management with `uv`
+## Dependency Management
 
-*   This project exclusively uses `uv` for Python package management and virtual environments. All dependency operations must be performed using `uv`.
-*   **Installation:** `uv` is automatically installed and available within the devcontainer.
+This project uses a hybrid approach for Python package management:
+*   **Inside the Devcontainer:** Standard `pip` is used for managing dependencies. The devcontainer environment is pre-configured with Python and `pip`.
+*   **Outside the Devcontainer (on the Host):** `uv` is recommended for creating and managing a virtual environment and installing dependencies.
+
+### Inside the Devcontainer (using `pip`)
+
+*   The devcontainer comes with Python and `pip` ready to use. No separate virtual environment activation is typically needed as the container itself provides isolation.
 *   **Managing Dependencies:**
-    *   **Installing from `requirements.txt`:** To install or synchronize with the project's dependencies: `uv pip install -r requirements.txt`
+    *   **Installing from `requirements.txt`:** `pip install -r requirements.txt`
+    *   **Adding a new package:** `pip install <package_name>`
+    *   **Updating a package:** `pip install --upgrade <package_name>`
+*   **Maintaining `requirements.txt`:**
+    *   **Crucial:** After adding, removing, or updating any package, **immediately** update the `requirements.txt` file using: `pip freeze > requirements.txt`
+    *   This ensures that the `requirements.txt` file always reflects the exact state of the project's dependencies.
+
+### Outside the Devcontainer (on the Host, using `uv`)
+
+*   `uv` is a fast Python package installer and resolver.
+*   **Installation of `uv`:** Follow the official `uv` installation guide if not already installed.
+*   **Creating a Virtual Environment (Recommended):**
+    *   `uv venv .venv` (Creates a virtual environment in a `.venv` directory)
+    *   Activate the environment:
+        *   Linux/macOS: `source .venv/bin/activate`
+        *   Windows (PowerShell): `.venv\Scripts\Activate.ps1`
+        *   Windows (CMD): `.venv\Scripts\activate.bat`
+*   **Managing Dependencies (with `uv` in an activated venv):**
+    *   **Installing from `requirements.txt`:** `uv pip install -r requirements.txt`
     *   **Adding a new package:** `uv pip install <package_name>`
     *   **Updating a package:** `uv pip install --upgrade <package_name>`
-    *   **Updating all packages from `requirements.txt`:** `uv pip install --upgrade -r requirements.txt` (Use with caution, ensure compatibility).
-*   **Maintaining `requirements.txt`:**
+*   **Maintaining `requirements.txt` (with `uv` in an activated venv):**
     *   **Crucial:** After adding, removing, or updating any package, **immediately** update the `requirements.txt` file using: `uv pip freeze > requirements.txt`
     *   This ensures that the `requirements.txt` file always reflects the exact state of the project's dependencies.
-*   **Important:** All `uv pip` commands must be run within the activated virtual environment.
+*   **Important:** When working outside the devcontainer, always ensure your `uv` commands are run within the activated virtual environment.

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `httpx` dependency to `requirements.txt` for `fastapi.testclient`.
 
 ### Changed
+- Updated `.clinerules/project_workflow.md` and `README.md` to reflect hybrid dependency management (pip in devcontainer, uv on host).
 - Revised `Makefile` to conditionally activate virtual environment. It now checks for `REMOTE_CONTAINERS` environment variable to skip venv activation if running inside a devcontainer.
 - Updated `tests/test_query_builder.py` to use table aliases (e.g., `dd.nome_dominio`) instead of full table names in assertions to match actual query builder output.
 - Modified `tests/test_graphql_api.py` in `test_get_visitas_filter_by_timestamp_range` to correctly parse ISO string timestamps returned by the API.
